@@ -715,6 +715,8 @@ Based on the {Assets.codeDownloadUri} web page and informed by the {Assets.codeG
             ProcessConfiguration(Versions.version);
         }
 
+        private const int maxConsoleWindowWidth = 100;
+
         // TODO: TBD: Multi-line descriptions are untested at this point...
         /// <summary>
         /// Parcels the <paramref name="s"/> first by new line separators, then according
@@ -727,7 +729,9 @@ Based on the {Assets.codeDownloadUri} web page and informed by the {Assets.codeG
         /// new lines and its fit within the <paramref name="width"/>.</returns>
         public static IEnumerable<string> SplitMultiline(this string s, int margin = 0, int? width = null)
         {
-            var widthOrConsoleWindowWidth = width ?? Console.WindowWidth;
+            var widthOrConsoleWindowWidth = Math.Min(width ?? Console.WindowWidth, maxConsoleWindowWidth);
+
+            bool IsWhiteSpace(char ch) => char.IsWhiteSpace(ch);
 
             var lines = s.Replace("\r", "").Split(Range('\n').ToArray());
 
@@ -745,7 +749,20 @@ Based on the {Assets.codeDownloadUri} web page and informed by the {Assets.codeG
                     {
                         var line = t.Substring(0, Math.Min(t.Length, widthOrConsoleWindowWidth - margin));
                         t = t.Substring(line.Length);
-                        yield return line;
+
+                        // Seems to be sufficiently to the edge cases.
+                        if (line.Length == widthOrConsoleWindowWidth && t.Any()
+                            && !IsWhiteSpace(line.Last()) && !IsWhiteSpace(t.First()))
+                        {
+                            for (var last = line.Last(); !IsWhiteSpace(last); last = line.Last())
+                            {
+                                // While we "can" do this in the increment for phrase, it is clearer to do them here.
+                                line = line.Substring(0, line.Length - 1);
+                                t = last + t;
+                            }
+                        }
+
+                        yield return line.Trim();
                     }
                 }
             }
