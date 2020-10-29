@@ -16,6 +16,8 @@ using System.Reflection;
 // TODO: TBD: with the thought being that potentially could merge the two repos, potentially...
 namespace Code.Downloader
 {
+    using static Program;
+
     /// <summary>
     /// It is a bit crude I will admit, but the intention here is to run very light. Literally,
     /// no dependencies, no other files. Literally, the only thing we should need to do here is
@@ -28,249 +30,13 @@ namespace Code.Downloader
     /// <see cref="!:https://docs.microsoft.com/en-us/dotnet/framework/app-domains/build-single-file-assembly"/>
     public static class Program
     {
-        private static class Assets
-        {
-            /// <summary>
-            /// Executable extension constant definition.
-            /// </summary>
-            private const string exe = "." + nameof(exe);
-
-            /// <summary>
-            /// Assumes that WGET is in your path somewhere. Refer to the WSUS URL
-            /// for downloads of a package containing the WGET resource.
-            /// </summary>
-            /// <see cref="exe"/>
-            /// <see cref="wsusOfflineUri"/>
-            internal const string wget = nameof(wget) + exe;
-
-            /// <summary>
-            ///
-            /// </summary>
-            /// <see cref="exe"/>
-            internal const string where = nameof(where) + exe;
-
-            private static string _wgetPath;
-
-            internal static string wgetPath => _wgetPath;
-
-            /// <summary>
-            /// Uri to the WSUS Offline downloads, &quot;https://download.wsusoffline.net&quot;.
-            /// </summary>
-            /// <see cref="!:https://download.wsusoffline.net">WSUS Offline Download</see>
-            private const string wsusOfflineUri = "https://download.wsusoffline.net";
-
-            /// <summary>
-            /// &quot;https://update.code.visualstudio.com/&quot;
-            /// </summary>
-            internal const string updateCodeUri = "https://update.code.visualstudio.com/";
-
-            /// <summary>
-            /// &quot;https://code.visualstudio.com/Download&quot;
-            /// </summary>
-            internal const string codeDownloadUri = "https://code.visualstudio.com/Download";
-
-            /// <summary>
-            /// &quot;https://github.com/microsoft/vscode/issues/109329&quot;
-            /// </summary>
-            /// <remarks>Automating the downloads with help from repeatable links</remarks>
-            internal const string codeGithubIssueUri = "https://github.com/microsoft/vscode/issues/109329";
-
-            private static bool TryDiscoverAssets(out string path)
-            {
-                path = null;
-
-                using (var process = new Process())
-                {
-                    process.StartInfo.UseShellExecute = false;
-                    process.StartInfo.FileName = Assets.where;
-                    process.StartInfo.Arguments = Assets.wget;
-                    process.StartInfo.CreateNoWindow = true;
-                    process.StartInfo.RedirectStandardOutput = true;
-
-                    process.Start();
-
-                    // TODO: TBD: as far as we know, we do not own the StandardOutput instance in order to dispose of it...
-                    var process_StandardOutput = process.StandardOutput;
-
-                    var pathCand = process_StandardOutput.ReadLine();
-
-                    if (File.Exists(pathCand))
-                    {
-                        path = pathCand;
-                    }
-
-                    process.WaitForExit();
-                }
-
-                return File.Exists(path);
-            }
-
-            /// <summary>
-            /// Gets whether the <see cref="wgetPath"/> Assets Are Discovered.
-            /// </summary>
-            internal static bool areDiscovered
-            {
-                get
-                {
-                    Console.WriteLine("Discovering assets...");
-
-                    bool TryDiscoveryFailed()
-                    {
-                        Console.WriteLine($"Unable to locate {wget} in your path.");
-                        Console.WriteLine($"Redirecting to download {wsusOfflineUri} package.");
-                        Process.Start(wsusOfflineUri);
-                        return false;
-                    }
-
-                    return TryDiscoverAssets(out _wgetPath) || TryDiscoveryFailed();
-                }
-            }
-        }
-
-        private static class Versions
-        {
-            /// <summary>
-            /// Gets the Latest Version for internal use. When we know that the
-            /// <see cref="version"/> request is for the Latest, then we can
-            /// simply use the word, &quot;latest&quot;.
-            /// </summary>
-            internal static Version latest { get; } = Version.Parse("1.50.1");
-
-            private static Version _version;
-
-            internal static Version version
-            {
-                get => _version ?? latest;
-                set => _version = value;
-            }
-
-            internal static Version MacOS { get; } = Version.Parse("10.10");
-        }
-
-        private static class Directories
-        {
-            internal const string macOS = nameof(macOS);
-            internal const string Windows = nameof(Windows);
-            internal const string x64 = nameof(x64);
-            internal const string x86 = nameof(x86);
-            internal const string arm = nameof(arm);
-            internal const string arm64 = nameof(arm64);
-        }
-
-        private static class Targets
-        {
-            /// <summary>
-            /// For use with macOS.
-            /// </summary>
-            internal const string darwin = nameof(darwin);
-
-            /// <summary>
-            /// For all Linux flavors.
-            /// </summary>
-            internal const string linux = nameof(linux);
-
-            /// <summary>
-            /// For use with all Windows flavors.
-            /// </summary>
-            internal const string win32 = nameof(win32);
-        }
-
-        private static class Architectures
-        {
-            internal const string x64 = nameof(x64);
-            internal const string x86 = nameof(x86);
-            internal const string ios = nameof(ios);
-            internal const string arm = nameof(arm);
-            internal const string armhf = nameof(armhf);
-            internal const string arm64 = nameof(arm64);
-            internal static IEnumerable<string> Win32 => Range(x64, x86, arm64);
-
-            /// <summary>
-            /// These are the repeatable Linux use cases, whereas <see cref="Builds.snap"/>
-            /// is a special use case.
-            /// </summary>
-            internal static IEnumerable<string> Linux => Range(x64, arm, arm64);
-        }
-
-        private static class Builds
-        {
-            internal const string user = nameof(user);
-            internal const string system = nameof(system);
-            internal const string deb = nameof(deb);
-            internal const string rpm = nameof(rpm);
-            internal const string archive = nameof(archive);
-            internal const string snap = nameof(snap);
-            internal static IEnumerable<string> Win32 => Range(user, system, archive);
-            internal static IEnumerable<string> Linux => Range(deb, rpm, archive);
-        }
-
-        private static bool help { get; set; }
-
-        private static bool dry { get; set; }
-
-        private static bool all { get; set; }
-
-        private static bool insider { get; set; }
-
-        private static IEnumerable<string> insiderParts
-        {
-            get
-            {
-                if (insider)
-                {
-                    yield return nameof(insider);
-                }
-            }
-        }
-
-        private static bool stable => !insider;
-
-        private static string slashStableOrInsider => $"/{(stable ? nameof(stable) : nameof(insider))}";
-
-        private static bool nopause { get; set; }
-
-        private static string target { get; set; } = string.Empty;
-
-        private static string arch { get; set; } = string.Empty;
-
-        private static string build { get; set; } = string.Empty;
-
-        private static bool showVersion { get; set; }
-
-        private static IEnumerable<T> Range<T>(params T[] values)
+        internal static IEnumerable<T> Range<T>(params T[] values)
         {
             foreach (var value in values)
             {
                 yield return value;
             }
         }
-
-        private static string _helpSum;
-
-        private static string RenderHelpSummary(string fileName)
-        {
-            static string RenderFlagValues(string flag, params string[] values)
-            {
-                const string pipe = "|";
-                return $"--{flag} {string.Join(pipe, values)}";
-            }
-
-            return $@"Provides a command line programmatic view into the Code download web page matrix. The options describe the values for each option, but not all combinations are valid. The following combinations work for each area of the matrix.
-
-  {fileName} {RenderFlagValues(nameof(target), Targets.darwin)}
-  {fileName} {RenderFlagValues(nameof(target), Targets.win32)} {RenderFlagValues(nameof(build), Builds.user, Builds.system, Builds.archive)} {RenderFlagValues(nameof(arch), Architectures.x64, Architectures.x86, Architectures.arm64)}
-  {fileName} {RenderFlagValues(nameof(target), Targets.linux)} {RenderFlagValues(nameof(build), Builds.deb, Builds.rpm, Builds.archive)} {RenderFlagValues(nameof(arch), Architectures.x64, Architectures.x86, Architectures.arm, Architectures.arm64)}
-  {fileName} {RenderFlagValues(nameof(target), Targets.linux)} {RenderFlagValues(nameof(build), Builds.snap)}
-
-There is only one download for {Directories.macOS} {Targets.darwin} {Versions.MacOS}+, --{nameof(arch)} --{nameof(build)} are both ignored.
-{RenderFlagValues(nameof(arch), Architectures.arm)} is assumed to be {RenderFlagValues(nameof(arch), Architectures.arm64)} when {RenderFlagValues(nameof(target), Targets.win32)} is specified.
---{nameof(arch)} is ignored when {RenderFlagValues(nameof(target), Targets.linux)} {RenderFlagValues(nameof(build), Builds.snap)} is specified.
-{RenderFlagValues(nameof(arch), Architectures.x86)} is assumed to be {RenderFlagValues(nameof(arch), Architectures.x64)} when {RenderFlagValues(nameof(target), Targets.linux)} is specified.
-
-Based on the {Assets.codeDownloadUri} web page and informed by the {Assets.codeGithubIssueUri} code github issue.";
-        }
-
-        private static string helpSum => _helpSum ?? (_helpSum = RenderHelpSummary(programFileName));
 
         private static bool TryPresentHelp(string summary, params (string[] flags, string description, string[] values)[] opts)
         {
@@ -310,152 +76,10 @@ Based on the {Assets.codeDownloadUri} web page and informed by the {Assets.codeG
             return false;
         }
 
-        private static Assembly _programAssy;
-        private static string _programFileName;
-
-        private static Assembly programAssy => _programAssy ?? (_programAssy = typeof(Program).Assembly);
-
-        private static string programFileName => _programFileName ?? (_programFileName = Path.GetFileName(programAssy.Location));
-
         private static bool TryShowVersion()
         {
             Console.WriteLine($"{programFileName} {programAssy.GetName().Version}");
             return false;
-        }
-
-        private static bool TryParseArguments(Func<bool> onAreAssetsDiscovered, params string[] args)
-        {
-            string GetArgument(int index) => args.ElementAt(index).ToLower();
-
-            var helpOpts = Range($"--{nameof(help)}", $"--{nameof(help).First()}").ToArray();
-            var targetOpts = Range($"--{nameof(target)}", $"-{nameof(target).First()}").ToArray();
-            var archOpts = Range($"--{nameof(arch)}", $"-{nameof(arch).First()}").ToArray();
-            var buildOpts = Range($"--{nameof(build)}", $"-{nameof(build).First()}").ToArray();
-            var allOpts = Range($"--{nameof(all)}").ToArray();
-            var dryOpts = Range($"--{nameof(dry)}").ToArray();
-            var codeVersionOpts = Range($"--code-{nameof(Version).ToLower()}", $"-c{nameof(Version).ToLower().First()}").ToArray();
-            var insiderOpts = Range($"--{nameof(insider)}", $"-{nameof(insider).First()}").ToArray();
-            var versionOpts = Range($"--{nameof(Version).ToLower()}", $"-{nameof(Version).ToLower().First()}").ToArray();
-
-            var targetValues = Range(Targets.darwin, Targets.linux, Targets.win32).ToArray();
-            var archValues = Range(Architectures.x64, Architectures.x86, Architectures.ios, Architectures.arm, Architectures.arm64).ToArray();
-            var buildValues = Range(Builds.user, Builds.system, Builds.archive, Builds.deb, Builds.rpm, Builds.snap).ToArray();
-            var defaultValues = Range<string>().ToArray();
-
-            nopause = false;
-            all = false;
-            dry = false;
-            showVersion = false;
-            target = null;
-            arch = null;
-            build = null;
-
-            bool TryPresentHelpOnReturn() => TryPresentHelp(
-                helpSum
-                , (helpOpts, "--x, what you are reading now.", defaultValues)
-                , (targetOpts, "--x VALUE, the targets.", targetValues)
-                , (archOpts, "--x VALUE, the architectures.", archValues)
-                , (buildOpts, "--x VALUE, the builds.", buildValues)
-                , (allOpts, "--x, get all targets, architectures, and builds", defaultValues)
-                , (dryOpts, "--x, performs the features in dry run scenarios", defaultValues)
-                , (codeVersionOpts, "--x VALUE, specify the Code version, or latest", Range(nameof(Versions.latest), nameof(Versions.version).ToUpper()).ToArray())
-                , (insiderOpts, $"--x, whether to get the {nameof(insider)} or {nameof(stable)}", defaultValues)
-                , (versionOpts, "--x, whether to show the downloader version", defaultValues)
-            );
-
-            int i;
-
-            for (i = 0; i < args.Length; i++)
-            {
-                var arg = GetArgument(i);
-
-                if (helpOpts.Contains(arg))
-                {
-                    help = true;
-                    TryShowVersion();
-                    return TryPresentHelpOnReturn();
-                }
-
-                if (versionOpts.Contains(arg))
-                {
-                    showVersion = true;
-                    return TryShowVersion();
-                }
-
-                if (arg == "--no-pause")
-                {
-                    nopause = true;
-                    continue;
-                }
-
-                // In generally the order in which you would review the downloads page.
-                // https://code.visualstudio.com/Download
-                if (targetOpts.Contains(arg))
-                {
-                    arg = GetArgument(++i);
-                    if (targetValues.Contains(arg))
-                    {
-                        target = arg;
-                    }
-                    continue;
-                }
-
-                if (archOpts.Contains(arg))
-                {
-                    arg = GetArgument(++i);
-                    if (archValues.Contains(arg))
-                    {
-                        arch = arg;
-                    }
-                    continue;
-                }
-
-                if (buildOpts.Contains(arg))
-                {
-                    arg = GetArgument(++i);
-                    if (buildValues.Contains(arg))
-                    {
-                        build = arg;
-                    }
-                    continue;
-                }
-
-                if (insiderOpts.Contains(arg))
-                {
-                    insider = true;
-                    continue;
-                }
-
-                if (allOpts.Contains(arg))
-                {
-                    all = true;
-                    continue;
-                }
-
-                if (dryOpts.Contains(arg))
-                {
-                    dry = true;
-                    continue;
-                }
-
-                if (codeVersionOpts.Contains(arg))
-                {
-                    Versions.version = Version.Parse(arg);
-                    continue;
-                }
-            }
-
-            if (!onAreAssetsDiscovered.Invoke())
-            {
-                return false;
-            }
-
-            if (dry)
-            {
-                Console.WriteLine($"{nameof(dry)}: {nameof(args)}.{nameof(args.Length)}: {args.Length}, {nameof(i)}: {i}");
-            }
-
-            return i == args.Length;
         }
 
         private static string RenderStringOrNull(string s)
@@ -470,54 +94,68 @@ Based on the {Assets.codeDownloadUri} web page and informed by the {Assets.codeG
         private static string OnRenderVersion(Version version) => version == null ? null : $"{version}";
 
         /// <summary>
+        /// Tries to Invoke the <see cref="Assets.Wget"/> asset given the <paramref name="uri"/>,
+        /// <paramref name="path"/> and additional <paramref name="args"/>.
+        /// </summary>
+        /// <param name="path">The output directory where wget should place the download.</param>
+        /// <param name="uri">The Uri that wget should use when getting the download.</param>
+        /// <param name="args">Additional command line arguments.</param>
+        /// <returns></returns>
+        private static bool TryInvokeWget(string path, string uri, params string[] args)
+        {
+            var wgetPath = Assets.wgetPath;
+
+            // -P for --directory-prefix, in this form.
+            args = args.Concat(Range("-P", path, uri)).ToArray();
+
+            if (this.dry)
+            {
+                Console.WriteLine($"{nameof(this.dry)}: {wgetPath} {string.Join(" ", args)}");
+            }
+            else
+            {
+                var startInfo = new ProcessStartInfo(wgetPath)
+                {
+                    Arguments = string.Join(" ", args)
+                };
+
+                using (var process = Process.Start(startInfo))
+                {
+                    process.WaitForExit();
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
         ///
         /// </summary>
         /// <param name="version">A rendered version string.</param>
         /// <param name="t">A target.</param>
         /// <param name="b">An optional build.</param>
         /// <param name="a">An optional architecture.</param>
-        private static void ProcessSingle(string version, string t, string b = null, string a = null)
+        private static void ProcessSingle(OptionsParser op, string version, string t, string b = null, string a = null)
         {
-            if (dry)
+            if (op.dry)
             {
-                Console.WriteLine($"{nameof(dry)}: {nameof(ProcessSingle)}({nameof(version)}: '{version}', {nameof(t)}: '{t}', {nameof(b)}: {RenderStringOrNull(b)}, {nameof(a)}: {RenderStringOrNull(a)})");
+                Console.WriteLine($"{nameof(op.dry)}: {nameof(ProcessSingle)}({nameof(version)}: '{version}', {nameof(t)}: '{t}', {nameof(b)}: {RenderStringOrNull(b)}, {nameof(a)}: {RenderStringOrNull(a)})");
             }
-
-            // darwin
-            // linux-arm64
-            // linux-armhf
-            // linux-deb-arm64
-            // linux-deb-armhf
-            // linux-deb-x64
-            // linux-rpm-arm64
-            // linux-rpm-armhf
-            // linux-rpm-x64
-            // linux-snap-x64
-            // linux-x64
-            // win32
-            // win32-archive
-            // win32-arm64
-            // win32-arm64-archive
-            // win32-arm64-user
-            // win32-user
-            // win32-x64
-            // win32-x64-archive
-            // win32-x64-user
 
             b = b ?? string.Empty;
             a = a ?? string.Empty;
 
             // Render both the updateCodeUri and version bits...
-            var baseUriVersion = insider
-                ? $"{Assets.updateCodeUri}{version}-{nameof(insider)}/"
+            var baseUriVersion = this.insider
+                ? $"{Assets.updateCodeUri}{version}-{nameof(this.insider)}/"
                 : $"{Assets.updateCodeUri}{version}/";
             version = version == nameof(Versions.latest) ? $"{Versions.latest}" : version;
 
             void MakeDirectory(string path)
             {
-                if (dry)
+                if (op.dry)
                 {
-                    Console.WriteLine($"{nameof(dry)}: Making directory: {path}");
+                    Console.WriteLine($"{nameof(op.dry)}: Making directory: {path}");
                     return;
                 }
 
@@ -527,42 +165,31 @@ Based on the {Assets.codeDownloadUri} web page and informed by the {Assets.codeG
             bool TryProcessAny(string path, string versionUriPhrase)
             {
                 MakeDirectory(path);
-
-                var uri = $"{baseUriVersion}{versionUriPhrase}{slashStableOrInsider}";
-
-                if (dry)
-                {
-                    Console.WriteLine($"{nameof(dry)}: {Assets.wget} {uri}");
-                    return true;
-                }
-
-                // TODO: TBD: otherwise, actually do the get...
-
-                return true;
+                return TryInvokeWget(path, $"{baseUriVersion}{versionUriPhrase}{slashStableOrInsider}");
             }
 
             string RenderAssertOrAssetInsiderPhrase(params string[] parts) => string.Join(
-                "-", parts.Concat(insiderParts).Where(x => !string.IsNullOrEmpty(x))
+                "-", parts.Concat(this.InsiderParts).Where(x => !string.IsNullOrEmpty(x))
             );
 
             // TODO: TBD: can probable refactor the general case given a path, uri, and directory...
             bool TryProcessWin32()
             {
-                var build = b == Builds.system ? null : b;
-                var arch = a == Architectures.x86 ? null : a;
+                var build = b == Build.system ? null : b;
+                var arch = a == Architecture.x86 ? null : a;
                 return TryProcessAny(Path.Combine(version, t, a), RenderAssertOrAssetInsiderPhrase(t, arch, build));
             }
 
             bool TryProcessLinux()
             {
-                var build = b == Builds.archive ? null : b;
+                var build = b == Build.archive ? null : b;
 
-                var arch = b == Builds.snap ? Architectures.x64
-                    : (a == Architectures.arm ? Architectures.armhf : a);
+                var arch = b == Build.snap ? Architecture.x64
+                    : (a == Architecture.arm ? Architecture.armhf : a);
 
                 var phrase = RenderAssertOrAssetInsiderPhrase(t, build, arch);
 
-                return b == Builds.snap
+                return b == Build.snap
                     ? TryProcessAny(Path.Combine(version, t, b), phrase)
                     : TryProcessAny(Path.Combine(version, t, a), phrase);
             }
@@ -571,15 +198,15 @@ Based on the {Assets.codeDownloadUri} web page and informed by the {Assets.codeG
 
             switch (t)
             {
-                case Targets.win32:
+                case Target.win32:
                     TryProcessWin32();
                     break;
 
-                case Targets.linux:
+                case Target.linux:
                     TryProcessLinux();
                     break;
 
-                case Targets.darwin:
+                case Target.darwin:
                     TryProcessDarwin();
                     break;
             }
@@ -592,15 +219,15 @@ Based on the {Assets.codeDownloadUri} web page and informed by the {Assets.codeG
         /// <param name="t">A target.</param>
         /// <param name="b">A build.</param>
         /// <param name="a">An architecture.</param>
-        private static void ProcessConfiguration(Version v)
+        private static void ProcessConfiguration(OptionsParser op, Version v)
         {
             var version = v == Versions.latest ? nameof(Versions.latest) : $"{v}";
 
             const string @null = nameof(@null);
 
-            if (dry)
+            if (op.dry)
             {
-                Console.WriteLine($"{nameof(dry)}: {nameof(ProcessConfiguration)}({nameof(v)}: {RenderStringOrNull(v, OnRenderVersion)}), {nameof(version)}: {RenderStringOrNull(version)}");
+                Console.WriteLine($"{nameof(op.dry)}: {nameof(ProcessConfiguration)}({nameof(v)}: {RenderStringOrNull(v, OnRenderVersion)}), {nameof(version)}: {RenderStringOrNull(version)}");
             }
 
             void ProcessMacOS(string t)
@@ -613,8 +240,8 @@ Based on the {Assets.codeDownloadUri} web page and informed by the {Assets.codeG
 
             void ProcessWin32(string t, string b = null, string a = null)
             {
-                var builds = (string.IsNullOrEmpty(b) ? Builds.Win32 : Range(b)).ToArray();
-                var arches = (string.IsNullOrEmpty(a) ? Architectures.Win32 : Range(a)).ToArray();
+                var builds = (string.IsNullOrEmpty(b) ? Build.win32 : Range(b)).ToArray();
+                var arches = (string.IsNullOrEmpty(a) ? Architecture.win32 : Range(a)).ToArray();
 
                 if (t == Targets.win32)
                 {
@@ -630,8 +257,8 @@ Based on the {Assets.codeDownloadUri} web page and informed by the {Assets.codeG
 
             void ProcessLinux(string t, string b = null, string a = null)
             {
-                var builds = (string.IsNullOrEmpty(b) ? Builds.Linux : Range(b)).ToArray();
-                var arches = (string.IsNullOrEmpty(a) ? Architectures.Linux : Range(a)).ToArray();
+                var builds = (string.IsNullOrEmpty(b) ? Build.linux : Range(b)).ToArray();
+                var arches = (string.IsNullOrEmpty(a) ? Architecture.linux : Range(a)).ToArray();
 
                 if (t == Targets.linux)
                 {
@@ -643,7 +270,7 @@ Based on the {Assets.codeDownloadUri} web page and informed by the {Assets.codeG
                         }
                     }
 
-                    ProcessSingle(version, t, Builds.snap);
+                    ProcessSingle(version, t, Build.snap);
                 }
             }
 
@@ -651,23 +278,23 @@ Based on the {Assets.codeDownloadUri} web page and informed by the {Assets.codeG
             {
                 /* We support arm64 arch downloads for win32 targets.
                 * Downloads says "ARM" but it is really arm64 behind the link. */
-                if (target == Targets.win32 && arch == Architectures.arm)
+                if (target == Targets.win32 && arch == Architecture.arm)
                 {
-                    arch = Architectures.arm64;
+                    arch = Architecture.arm64;
                 }
 
                 // Assumes Debian, RPM, or Snap builds are Linux targets.
-                if (Range(Builds.deb, Builds.rpm, Builds.snap).Contains(build))
+                if (Range(Build.deb, Build.rpm, Build.snap).Contains(build))
                 {
                     target = Targets.linux;
                 }
 
                 // Assumes x64 when linux and one of its builds specified.
                 if (target == Targets.linux
-                    && Range(Builds.deb, Builds.rpm, Builds.archive).Contains(build)
-                    && !Range(Architectures.x64, Architectures.arm, Architectures.arm64).Contains(arch))
+                    && Range(Build.deb, Build.rpm, Build.archive).Contains(build)
+                    && !Range(Architecture.x64, Architecture.arm, Architecture.arm64).Contains(arch))
                 {
-                    arch = Architectures.x64;
+                    arch = Architecture.x64;
                 }
             }
 
@@ -685,31 +312,37 @@ Based on the {Assets.codeDownloadUri} web page and informed by the {Assets.codeG
                 var b = build;
                 var a = arch;
 
-                ProcessWin32(t ?? Targets.win32, b, a);
-                ProcessLinux(t ?? Targets.linux, b, a);
-                ProcessMacOS(t ?? Targets.darwin);
+                ProcessWin32(t ?? string.Empty, b, a);
+                ProcessLinux(t ?? string.Empty, b, a);
+                ProcessMacOS(t ?? string.Empty);
             }
         }
 
+        private static Assets CurrentAssets { get; } = new Assets();
+
+        private static Versions CurrentVersions { get; } = new Versions();
+
         public static void Main(string[] args)
         {
-            if (!TryParseArguments(() => Assets.areDiscovered, args))
+            var op = new OptionsParser();
+
+            if (op.TryParseArguments(CurrentAssets, CurrentVersions, args);))
             {
                 return;
             }
 
             void ReportNameValuePair<T>(string name, T value) => Console.WriteLine($"{name}: {value}".ToLower());
 
-            if (dry)
+            if (op.dry)
             {
-                ReportNameValuePair(nameof(dry), dry);
-                ReportNameValuePair(nameof(all), all);
-                ReportNameValuePair(nameof(nopause), nopause);
+                ReportNameValuePair(nameof(op.dry), op.dry);
+                ReportNameValuePair(nameof(op.all), op.all);
+                ReportNameValuePair(nameof(op.NoPause), op.NoPause);
                 ReportNameValuePair(nameof(target), target ?? string.Empty);
                 ReportNameValuePair(nameof(arch), arch ?? string.Empty);
                 ReportNameValuePair(nameof(build), build ?? string.Empty);
-                ReportNameValuePair(nameof(insider), insider);
-                ReportNameValuePair(nameof(stable), stable);
+                ReportNameValuePair(nameof(op.insider), op.insider);
+                ReportNameValuePair(nameof(op.stable), op.stable);
             }
 
             ProcessConfiguration(Versions.version);
@@ -765,6 +398,510 @@ Based on the {Assets.codeDownloadUri} web page and informed by the {Assets.codeG
                         yield return line.Trim();
                     }
                 }
+            }
+        }
+    }
+
+    private static class Directories
+    {
+        internal const string Windows = nameof(Windows);
+        internal const string x64 = nameof(x64);
+        internal const string x86 = nameof(x86);
+        internal const string arm = nameof(arm);
+        internal const string arm64 = nameof(arm64);
+    }
+
+    public class Versions
+    {
+        /// <summary>
+        /// Gets the Latest Version for internal use. When we know that the
+        /// <see cref="version"/> request is for the Latest, then we can
+        /// simply use the word, &quot;latest&quot;.
+        /// </summary>
+        public static Version latest { get; } = Version.Parse("1.50.1");
+
+        private Version _version;
+
+        public Version version
+        {
+            get => _version ?? this.latest;
+            set => _version = value;
+        }
+
+        public static Version macOS { get; } = Version.Parse("10.10");
+    }
+
+    internal class Assets
+    {
+        /// <summary>
+        /// Executable extension constant definition.
+        /// </summary>
+        private const string exe = "." + nameof(exe);
+
+        /// <summary>
+        /// Assumes that WGET is in your path somewhere. Refer to the WSUS URL
+        /// for downloads of a package containing the WGET resource.
+        /// </summary>
+        /// <see cref="exe"/>
+        /// <see cref="wsusOfflineUri"/>
+        internal const string wget = nameof(wget) + exe;
+
+        /// <summary>
+        ///
+        /// </summary>
+        /// <see cref="exe"/>
+        internal const string where = nameof(where) + exe;
+
+        private string _wgetPath;
+
+        public virtual string wgetPath => _wgetPath;
+
+        /// <summary>
+        /// Uri to the WSUS Offline downloads, &quot;https://download.wsusoffline.net&quot;.
+        /// </summary>
+        /// <see cref="!:https://download.wsusoffline.net">WSUS Offline Download</see>
+        public string WsusOfflineUri { get; } = "https://download.wsusoffline.net";
+
+        /// <summary>
+        /// &quot;https://update.code.visualstudio.com/&quot;
+        /// </summary>
+        public string UpdateCodeUri { get; } = "https://update.code.visualstudio.com/";
+
+        /// <summary>
+        /// &quot;https://code.visualstudio.com/Download&quot;
+        /// </summary>
+        public string CodeDownloadUri { get; } = "https://code.visualstudio.com/Download";
+
+        /// <summary>
+        /// &quot;https://github.com/microsoft/vscode/issues/109329&quot;
+        /// </summary>
+        /// <remarks>Automating the downloads with help from repeatable links</remarks>
+        public string CodeGithubIssueUri { get; } = "https://github.com/microsoft/vscode/issues/109329";
+
+        private static bool TryDiscoverAssets(out string path)
+        {
+            path = null;
+
+            using (var process = new Process())
+            {
+                process.StartInfo.UseShellExecute = false;
+                process.StartInfo.FileName = Assets.where;
+                process.StartInfo.Arguments = Assets.wget;
+                process.StartInfo.CreateNoWindow = true;
+                process.StartInfo.RedirectStandardOutput = true;
+
+                process.Start();
+
+                // TODO: TBD: as far as we know, we do not own the StandardOutput instance in order to dispose of it...
+                var process_StandardOutput = process.StandardOutput;
+
+                var pathCand = process_StandardOutput.ReadLine();
+
+                if (File.Exists(pathCand))
+                {
+                    path = pathCand;
+                }
+
+                process.WaitForExit();
+            }
+
+            return File.Exists(path);
+        }
+
+        /// <summary>
+        /// Gets whether the <see cref="wgetPath"/> Assets Are Discovered.
+        /// </summary>
+        public bool AreDiscovered
+        {
+            get
+            {
+                Console.WriteLine("Discovering assets...");
+
+                bool TryDiscoveryFailed()
+                {
+                    Console.WriteLine($"Unable to locate {wget} in your path.");
+                    Console.WriteLine($"Redirecting to download {wsusOfflineUri} package.");
+                    Process.Start(wsusOfflineUri);
+                    return false;
+                }
+
+                return TryDiscoverAssets(out _wgetPath) || TryDiscoveryFailed();
+            }
+        }
+    }
+
+    public class OptionsParser
+    {
+        private bool help { get; set; }
+
+        private bool ShowVersion { get; set; }
+
+        internal bool NoPause { get; private set; }
+
+        internal bool dry { get; private set; }
+
+        internal bool all { get; private set; }
+
+        internal bool insider { get; private set; }
+
+        private IEnumerable<string> InsiderParts
+        {
+            get
+            {
+                if (this.insider)
+                {
+                    yield return nameof(this.insider).ToLower();
+                }
+            }
+        }
+
+        internal bool stable => !this.insider;
+
+        private string SlashStableOrInsider => $"/{(this.stable ? nameof(this.stable) : nameof(this.insider))}";
+
+        private Target CurrentTarget { get; set; } = default;
+
+        private Architecture? CurrentArch { get; set; } = default;
+
+        private Build? CurrentBuild { get; set; } = default;
+
+        private static Assembly ProgramAssy { get; } = typeof(Program).Assembly;
+
+        private static string ProgramFileName { get; } = Path.GetFileName(ProgramAssy.Location);
+
+        private string HelpSummary { get; } = GetHelpSummary(ProgramFileName);
+
+        private string RenderHelpSummary(string fileName)
+        {
+            static string RenderFlagValues<K, V>(K key, params V[] values)
+            {
+                const string pipe = "|";
+                return $"--{key} {string.Join(pipe, values.Select(x => $"{x}"))}";
+            }
+
+            var target = nameof(Target).ToLower();
+            var build = nameof(Build).ToLower();
+            var arch = nameof(Architecture).Substring(0, 4).ToLower();
+
+            const Target darwin = Target.darwin;
+            const Target linux = Target.linux;
+            const Target win32 = Target.win32;
+
+            const Architecture x64 = Architecture.x64;
+            const Architecture x86 = Architecture.x86;
+            const Architecture arm = Architecture.arm;
+            const Architecture arm64 = Architecture.arm64;
+
+            const Build user = Build.user;
+            const Build system = Build.system;
+            const Build archive = Build.archive;
+            const Build deb = Build.deb;
+            const Build rpm = Build.rpm;
+            const Build snap = Build.snap;
+
+            return $@"Provides a command line programmatic view into the Code download web page matrix. The options describe the values for each option, but not all combinations are valid. The following combinations work for each area of the matrix.
+
+  {fileName} {RenderFlagValues(target, darwin)}
+  {fileName} {RenderFlagValues(target, win32)} {RenderFlagValues(build, user, system, archive)} {RenderFlagValues(arch, x64, x86, arm64)}
+  {fileName} {RenderFlagValues(target, linux)} {RenderFlagValues(build, deb, rpm, archive)} {RenderFlagValues(arch, x64, x86, arm, arm64)}
+  {fileName} {RenderFlagValues(target, linux)} {RenderFlagValues(build, snap)}
+
+There is only one download for {nameof(Versions.macOS)} {darwin} {Versions.macOS}+, --{arch} --{build} are both ignored.
+{RenderFlagValues(arch, arm)} is assumed to be {RenderFlagValues(arch, arm64)} when {RenderFlagValues(target, win32)} is specified.
+--{arch} is ignored when {RenderFlagValues(target, linux)} {RenderFlagValues(build, smap)} is specified.
+{RenderFlagValues(arch, x86)} is assumed to be {RenderFlagValues(arch, x64)} when {RenderFlagValues(target, linux)} is specified.
+
+Based on the {CodeDownloadUri} web page and informed by the {CodeGithubIssueUri} code github issue.";
+        }
+
+        public bool TryParseArguments(Assets currentAssets, Versions currentVersions, params string[] args)
+        {
+            string OnRenderValue<T>(T value) => $"{value}";
+
+            string GetArgument(int index) => args.ElementAt(index).ToLower();
+
+            var noPauseOpts = Range("--no-pause").ToArray();
+            var helpOpts = Range($"--{nameof(this.help)}", $"--{nameof(this.help).First()}").ToArray();
+            var targetOpts = Range($"--{nameof(Target).ToLower()}", $"-{nameof(Target).ToLower().First()}").ToArray();
+            var archOpts = Range($"--{nameof(Architecture).ToLower().Substring(0, 4)}", $"-{nameof(Architecture).ToLower().First()}").ToArray();
+            var buildOpts = Range($"--{nameof(Build).ToLower()}", $"-{nameof(Build).ToLower().First()}").ToArray();
+            var allOpts = Range($"--{nameof(this.all)}").ToArray();
+            var dryOpts = Range($"--{nameof(this.dry)}").ToArray();
+            var codeVersionOpts = Range($"--code-{nameof(Version).ToLower()}", $"-c{nameof(Version).ToLower().First()}").ToArray();
+            var insiderOpts = Range($"--{nameof(this.insider)}", $"-{nameof(this.insider).First()}").ToArray();
+            var versionOpts = Range($"--{nameof(Version).ToLower()}", $"-{nameof(Version).ToLower().First()}").ToArray();
+
+            var targetValues = Range(Target.darwin, Target.linux, Target.win32).Select(OnRenderValue).ToArray();
+            var archValues = Range(Architecture.x64, Architecture.x86, Architecture.ios, Architecture.arm, Architecture.arm64).Select(OnRenderValue).ToArray();
+            var buildValues = Range(Build.user, Build.system, Build.archive, Build.deb, Build.rpm, Build.snap).Select(OnRenderValue).ToArray();
+            var defaultValues = Range<string>().ToArray();
+
+            // Reset the optional values to nominal defaults.
+            this.NoPause = false;
+            this.all = false;
+            this.dry = false;
+            this.ShowVersion = false;
+            this.CurrentTarget = default;
+            this.CurrentArch = default;
+            this.CurrentBuild = default;
+
+            bool TryPresentHelpOnReturn() => TryPresentHelp(
+                this.HelpSummary
+                , (helpOpts, "--x, what you are reading now.", defaultValues)
+                , (targetOpts, "--x VALUE, the targets.", targetValues)
+                , (archOpts, "--x VALUE, the architectures.", archValues)
+                , (buildOpts, "--x VALUE, the builds.", buildValues)
+                , (allOpts, "--x, get all targets, architectures, and builds", defaultValues)
+                , (dryOpts, "--x, performs the features in dry run scenarios", defaultValues)
+                , (codeVersionOpts, "--x VALUE, specify the Code version, or latest", Range(nameof(Versions.latest), nameof(Versions.version).ToUpper()).ToArray())
+                , (insiderOpts, $"--x, whether to get the {nameof(this.insider)} or {nameof(this.stable)}", defaultValues)
+                , (versionOpts, "--x, whether to show the downloader version", defaultValues)
+            );
+
+            int i;
+
+            for (i = 0; i < args.Length; i++)
+            {
+                var arg = GetArgument(i);
+
+                if (helpOpts.Contains(arg))
+                {
+                    this.help = true;
+                    TryShowVersion();
+                    return TryPresentHelpOnReturn();
+                }
+
+                if (versionOpts.Contains(arg))
+                {
+                    this.ShowVersion = true;
+                    return TryShowVersion();
+                }
+
+                if (noPauseOpts.Contains(arg))
+                {
+                    this.NoPause = true;
+                    continue;
+                }
+
+                // In generally the order in which you would review the downloads page.
+                // https://code.visualstudio.com/Download
+                if (targetOpts.Contains(arg))
+                {
+                    arg = GetArgument(++i);
+                    if (targetValues.Contains(arg))
+                    {
+                        this.CurrentTarget = arg;
+                    }
+                    continue;
+                }
+
+                if (archOpts.Contains(arg))
+                {
+                    arg = GetArgument(++i);
+                    if (archValues.Contains(arg))
+                    {
+                        this.CurrentArch = arg;
+                    }
+                    continue;
+                }
+
+                if (buildOpts.Contains(arg))
+                {
+                    arg = GetArgument(++i);
+                    if (buildValues.Contains(arg))
+                    {
+                        this.CurrentBuild = arg;
+                    }
+                    continue;
+                }
+
+                if (insiderOpts.Contains(arg))
+                {
+                    this.insider = true;
+                    continue;
+                }
+
+                if (allOpts.Contains(arg))
+                {
+                    this.all = true;
+                    continue;
+                }
+
+                if (dryOpts.Contains(arg))
+                {
+                    this.dry = true;
+                    continue;
+                }
+
+                if (codeVersionOpts.Contains(arg))
+                {
+                    currentVersions.version = Version.Parse(arg);
+                    continue;
+                }
+            }
+
+            if (!currentAssets.AreDiscovered.Invoke())
+            {
+                return false;
+            }
+
+            if (this.dry)
+            {
+                Console.WriteLine($"{nameof(dry)}: {nameof(args)}.{nameof(args.Length)}: {args.Length}, {nameof(i)}: {i}");
+            }
+
+            return i == args.Length;
+        }
+    }
+
+    // win32+system+x86+version => VSCodeSetup-ia32-1.49.2.exe
+    // win32+user+x86+version => VSCodeUserSetup-ia32-1.49.2.exe
+    // win32+archive+x86+version => VSCode-win32-ia32-1.49.2.zip
+
+    // win32+system+x64+version => VSCodeSetup-x86-1.49.2.exe
+    // win32+user+x64+version => VSCodeUserSetup-x86-1.49.2.exe
+    // win32+archive+x64+version => VSCode-win32-x86-1.49.2.zip
+
+    // win32+system+x64+version => VSCodeSetup-x86-1.49.2.exe
+    // win32+user+x64+version => VSCodeUserSetup-x86-1.49.2.exe
+    // win32+archive+x64+version => VSCode-win32-x86-1.49.2.zip
+
+    // win32+system+arm64+version => VSCodeSetup-arm64-1.49.2.exe
+    // win32+user+arm64+version => VSCodeUserSetup-arm64-1.49.2.exe
+    // win32+archive+arm64+version => VSCode-win32-arm64-1.49.2.zip
+
+    // linux+deb+x64+version => code_1.49.2-amd64.deb
+    // linux+rpm+x64+version => code_1.49.2-amd64.rpm
+    // linux+archive+x64+version => code_1.49.2-amd64.tar.gz
+
+    // darwin+version+stable => VSCode-darwin-1.49.2-stable.zip
+
+    public enum Target
+    {
+        /// <summary>
+        /// For use with macOS.
+        /// </summary>
+        darwin,
+
+        /// <summary>
+        /// For all Linux flavors.
+        /// </summary>
+        linux,
+
+        /// <summary>
+        /// For use with all Windows flavors.
+        /// </summary>
+        win32
+    }
+
+    public enum Architectures
+    {
+        x64,
+        x86,
+        ios,
+        arm,
+        armhf,
+        arm64
+    }
+
+    private enum Build
+    {
+        user,
+        system,
+        deb,
+        rpm,
+        archive,
+        snap
+    }
+
+    // darwin
+    // linux-arm64
+    // linux-armhf
+    // linux-deb-arm64
+    // linux-deb-armhf
+    // linux-deb-x64
+    // linux-rpm-arm64
+    // linux-rpm-armhf
+    // linux-rpm-x64
+    // linux-snap-x64
+    // linux-x64
+    // win32
+    // win32-archive
+    // win32-arm64
+    // win32-arm64-archive
+    // win32-arm64-user
+    // win32-user
+    // win32-x64
+    // win32-x64-archive
+    // win32-x64-user
+
+    public class DownloadDescriptor
+    {
+        private static IEnumerable<Architecture> GetArchitectures(Target target)
+        {
+            if (target == Target.win32)
+            {
+                yield return Architecture.x64;
+                yield return Architecture.x86;
+                yield return Architecture.arm64;
+            }
+            else if (target == Target.linux)
+            {
+                yield return Architecture.x64;
+                yield return Architecture.arm;
+                yield return Architecture.arm64;
+            }
+        }
+
+        private static IEnumerable<Build> GetBuilds(Target target)
+        {
+            if (target == Target.win32)
+            {
+                yield return Build.user;
+                yield return Build.system;
+                yield return Build.archive;
+            }
+            else if (target == Target.linux)
+            {
+                yield return Build.deb;
+                yield return Build.rpm;
+                yield return Build.archive;
+            }
+        }
+
+        private static IDictionary<Target, IEnumerable<Architecture>> _targetArchitectures;
+
+        private static IDictionary<Target, IEnumerable<Build>> _targetBuilds;
+
+        public static IDictionary<Target, IEnumerable<Architecture>> TargetArchitectures => _targetArchitectures ?? (
+            _targetArchitectures = Range(Target.win32, Target.linux, Target.darwin).ToDictionary(x => x, GetArchitectures)
+        );
+
+        public static IDictionary<Target, IEnumerable<Build>> TargetBuilds => _targetBuilds ?? (
+            _targetBuilds = Range(Target.win32, Target.linux, Target.darwin).ToDictionary(x => x, GetBuilds)
+        );
+
+        private (Target target, Architecture? arch, Build? build) Elements { get; }
+
+        private Target Target => this.Elements.target;
+
+        private Architecture? Arch => this.Elements.arch;
+
+        private Build? Build => this.Elements.build;
+
+        private Version Version { get; set; }
+
+        public bool IsLatest{ get; set; }
+
+        public string DestinationPath { get; }
+
+        public DownloadDescriptor((Target target, Architecture? arch, Build? build) elements)
+        {
+            this.Elements = elements;
+
+            if (this.Target == Target.darwin)
+            {
+                this.Elements = (this.Target, null, null);
             }
         }
     }
