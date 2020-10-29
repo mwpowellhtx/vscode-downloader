@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+
+[assembly: AssemblyVersion("0.1.0.0")]
 
 // TODO: TBD: https://docs.microsoft.com/en-us/dotnet/framework/app-domains/build-single-file-assembly
 // TODO: TBD: Automating the downloads with help from repeatable links / https://github.com/microsoft/vscode/issues/109329
@@ -212,6 +215,8 @@ namespace Code.Downloader
 
         private static string build { get; set; }
 
+        private static bool showVersion { get; set; }
+
         private static IEnumerable<T> Range<T>(params T[] values)
         {
             foreach (var value in values)
@@ -261,6 +266,19 @@ namespace Code.Downloader
             return false;
         }
 
+        private static Assembly OnShowVersionAssySelector(Type rootType) => rootType.Assembly;
+
+        private static bool TryShowVersion(Type rootType, Func<Type, Assembly> assySelector)
+        {
+            var assy = assySelector.Invoke(rootType);
+            var assyName = assy.GetName();
+            var assyFileName = Path.GetFileName(assy.Location);
+            Console.WriteLine($"{assyFileName} {assyName.Version}");
+            return false;
+        }
+
+        private static bool TryShowVersion() => TryShowVersion(typeof(Program), OnShowVersionAssySelector);
+
         private static bool TryParseArguments(Func<bool> onAreAssetsDiscovered, params string[] args)
         {
             string GetArgument(int index) => args.ElementAt(index).ToLower();
@@ -271,8 +289,9 @@ namespace Code.Downloader
             var buildOpts = Range($"--{nameof(build)}", $"-{nameof(build).First()}").ToArray();
             var allOpts = Range($"--{nameof(all)}").ToArray();
             var dryOpts = Range($"--{nameof(dry)}").ToArray();
-            var versionOpts = Range($"--{nameof(Versions.version).First()}", $"--{nameof(Versions.version)}").ToArray();
-            var insiderOpts = Range($"--{nameof(insider).First()}", $"--{nameof(insider)}").ToArray();
+            var codeVersionOpts = Range($"--code-{nameof(Version).ToLower()}", $"-c{nameof(Version).ToLower().First()}").ToArray();
+            var insiderOpts = Range($"--{nameof(insider)}", $"-{nameof(insider).First()}").ToArray();
+            var versionOpts = Range($"--{nameof(Version).ToLower()}", $"-{nameof(Version).ToLower().First()}").ToArray();
 
             var targetValues = Range(Targets.darwin, Targets.linux, Targets.win32).ToArray();
             var archValues = Range(Architectures.x64, Architectures.x86, Architectures.ios, Architectures.arm, Architectures.arm64).ToArray();
@@ -282,11 +301,10 @@ namespace Code.Downloader
             nopause = false;
             all = false;
             dry = false;
+            showVersion = false;
             target = null;
             arch = null;
             build = null;
-
-            int i;
 
             bool TryPresentHelpOnReturn() => TryPresentHelp(
                 (helpOpts, "--x, what you are reading now.", defaultValues)
@@ -295,9 +313,12 @@ namespace Code.Downloader
                 , (buildOpts, "--x VALUE, the builds.", buildValues)
                 , (allOpts, "--x, get all targets, architectures, and builds", defaultValues)
                 , (dryOpts, "--x, performs the features in dry run scenarios", defaultValues)
+                , (codeVersionOpts, "--x VALUE, specify the Code version, or latest", Range(nameof(Versions.latest), nameof(Versions.version).ToUpper()).ToArray())
                 , (insiderOpts, $"--x, whether to get the {nameof(insider)} or {nameof(stable)}", defaultValues)
-                , (versionOpts, "--x VALUE, specify the version, or latest", Range(nameof(Versions.latest), nameof(Versions.version).ToUpper()).ToArray())
+                , (versionOpts, "--x, whether to show the downloader version", defaultValues)
             );
+
+            int i;
 
             for (i = 0; i < args.Length; i++)
             {
@@ -306,7 +327,14 @@ namespace Code.Downloader
                 if (helpOpts.Contains(arg))
                 {
                     help = true;
+                    TryShowVersion();
                     return TryPresentHelpOnReturn();
+                }
+
+                if (versionOpts.Contains(arg))
+                {
+                    showVersion = true;
+                    return TryShowVersion();
                 }
 
                 if (arg == "--no-pause")
@@ -365,7 +393,7 @@ namespace Code.Downloader
                     continue;
                 }
 
-                if (versionOpts.Contains(arg))
+                if (codeVersionOpts.Contains(arg))
                 {
                     Versions.version = Version.Parse(arg);
                     continue;
