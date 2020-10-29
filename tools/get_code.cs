@@ -273,9 +273,8 @@ namespace Code.Downloader
                 {
                     while (t.Any())
                     {
-                        var length = Math.Min(t.Length, widthOrConsoleWindowWidth - margin);
-                        var line = t.Substring(0, length);
-                        t = length == line.Length ? string.Empty : t.Substring(length);
+                        var line = t.Substring(0, Math.Min(t.Length, widthOrConsoleWindowWidth - margin));
+                        t = t.Substring(line.Length);
                         yield return line;
                     }
                 }
@@ -304,7 +303,7 @@ There is only one download for {Directories.macOS} {Targets.darwin} {Versions.Ma
 --{nameof(arch)} is ignored when {RenderFlagValues(nameof(target), Targets.linux)} {RenderFlagValues(nameof(build), Builds.snap)} is specified.
 {RenderFlagValues(nameof(arch), Architectures.x86)} is assumed to be {RenderFlagValues(nameof(arch), Architectures.x64)} when {RenderFlagValues(nameof(target), Targets.linux)} is specified.
 
-Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri} code github issue.";
+Based on the {Assets.codeDownloadUri} web page and informed by the {Assets.codeGithubIssueUri} code github issue.";
         }
 
         private static string helpSum => _helpSum ?? (_helpSum = RenderHelpSummary(programFileName));
