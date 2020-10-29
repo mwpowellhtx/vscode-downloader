@@ -7,8 +7,6 @@ using System.Reflection;
 
 [assembly: AssemblyVersion("0.1.0.0")]
 
-// TODO: TBD: https://docs.microsoft.com/en-us/dotnet/framework/app-domains/build-single-file-assembly
-// TODO: TBD: Automating the downloads with help from repeatable links / https://github.com/microsoft/vscode/issues/109329
 // TODO: TBD: just about done with this one...
 // TODO: TBD: I may also commit it to github after all, we'll see...
 // TODO: TBD: just about all the plumbing is in and verified...
@@ -16,7 +14,6 @@ using System.Reflection;
 // TODO: TBD: what remains is to verify that the wget process itself actually works as expected...
 // TODO: TBD: might consider giving the Code repo a gander and establishing this repo as a seamless overlay there...
 // TODO: TBD: with the thought being that potentially could merge the two repos, potentially...
-// TODO: TBD: https://github.com/Microsoft/vscode so if we homed it under .../tools that would be compatible...
 namespace Code.Downloader
 {
     /// <summary>
@@ -27,18 +24,30 @@ namespace Code.Downloader
     /// <em>PowerShell</em> approach. Which so far we are able to accomplish with
     /// a nominal set of System level using statements.
     /// </summary>
+    /// <see cref="!:https://github.com/Microsoft/vscode"/>
+    /// <see cref="!:https://docs.microsoft.com/en-us/dotnet/framework/app-domains/build-single-file-assembly"/>
     public static class Program
     {
         private static class Assets
         {
             /// <summary>
+            /// Executable extension constant definition.
+            /// </summary>
+            private const string exe = "." + nameof(exe);
+
+            /// <summary>
             /// Assumes that WGET is in your path somewhere. Refer to the WSUS URL
             /// for downloads of a package containing the WGET resource.
             /// </summary>
+            /// <see cref="exe"/>
             /// <see cref="wsusOfflineUri"/>
-            internal static string wget { get; } = $"{nameof(wget)}.exe";
+            internal const string wget = nameof(wget) + exe;
 
-            internal static string where { get; } = $"{nameof(where)}.exe";
+            /// <summary>
+            ///
+            /// </summary>
+            /// <see cref="exe"/>
+            internal const string where = nameof(where) + exe;
 
             private static string _wgetPath;
 
@@ -54,6 +63,17 @@ namespace Code.Downloader
             /// &quot;https://update.code.visualstudio.com/&quot;
             /// </summary>
             internal const string updateCodeUri = "https://update.code.visualstudio.com/";
+
+            /// <summary>
+            /// &quot;https://code.visualstudio.com/Download&quot;
+            /// </summary>
+            internal const string codeDownloadUri = "https://code.visualstudio.com/Download";
+
+            /// <summary>
+            /// &quot;https://github.com/microsoft/vscode/issues/109329&quot;
+            /// </summary>
+            /// <remarks>Automating the downloads with help from repeatable links</remarks>
+            internal const string codeGithubIssueUri = "https://github.com/microsoft/vscode/issues/109329";
 
             private static bool TryDiscoverAssets(out string path)
             {
@@ -209,11 +229,11 @@ namespace Code.Downloader
 
         private static bool nopause { get; set; }
 
-        private static string target { get; set; }
+        private static string target { get; set; } = string.Empty;
 
-        private static string arch { get; set; }
+        private static string arch { get; set; } = string.Empty;
 
-        private static string build { get; set; }
+        private static string build { get; set; } = string.Empty;
 
         private static bool showVersion { get; set; }
 
@@ -225,32 +245,93 @@ namespace Code.Downloader
             }
         }
 
-        private static bool TryPresentHelp(params (string[] flags, string description, string[] values)[] opts)
+        // TODO: TBD: Multi-line descriptions are untested at this point...
+        /// <summary>
+        /// Parcels the <paramref name="s"/> first by new line separators, then according
+        /// to its fit within the known <see cref="Console.WindowWidth"/>.
+        /// </summary>
+        /// <param name="s"></param>
+        /// <param name="margin"></param>
+        /// <param name="width"></param>
+        /// <returns>The multiple lines of <paramref name="s"/> split according to
+        /// new lines and its fit within the <paramref name="width"/>.</returns>
+        private static IEnumerable<string> GetDescriptionLines(string s, int margin = 0, int? width = null)
         {
-            // TODO: TBD: or potentially determine the width of the console...
-            var console_WindowWidth = Console.WindowWidth;
+            var widthOrConsoleWindowWidth = width ?? Console.WindowWidth;
 
-            //const int colWidth = 4;
-            const string flagDelim = ", ";
+            var lines = s.Replace("\r", "").Split(Range('\n').ToArray());
 
-            var maxFlagWidth = opts.Max(x => x.flags.Sum(y => y.Length) + (x.flags.Length - 1) * flagDelim.Length);
-            //var flagsWidth = ((int)(maxFlagWidth / colWidth) + 1) * colWidth;
-
-            IEnumerable<string> GetDescriptionLines(string s)
+            foreach (var multi in lines)
             {
-                while (s.Any())
+                var t = multi;
+
+                if (string.IsNullOrEmpty(t))
                 {
-                    var line = s.Substring(0, Math.Min(s.Length, console_WindowWidth - maxFlagWidth));
-                    s = s.Substring(line.Length, s.Length - line.Length);
-                    yield return line;
+                    yield return t ?? string.Empty;
+                }
+                else
+                {
+                    while (t.Any())
+                    {
+                        var length = Math.Min(t.Length, widthOrConsoleWindowWidth - margin);
+                        var line = t.Substring(0, length);
+                        t = length == line.Length ? string.Empty : t.Substring(length);
+                        yield return line;
+                    }
                 }
             }
+        }
+
+        private static string _helpSum;
+
+        private static string RenderHelpSummary(string fileName)
+        {
+            static string RenderFlagValues(string flag, params string[] values)
+            {
+                const string pipe = "|";
+                return $"--{flag} {string.Join(pipe, values)}";
+            }
+
+            return $@"Provides a command line programmatic view into the Code download web page matrix. The options describe the values for each option, but not all combinations are valid. The following combinations work for each area of the matrix.
+
+  {fileName} {RenderFlagValues(nameof(target), Targets.darwin)}
+  {fileName} {RenderFlagValues(nameof(target), Targets.win32)} {RenderFlagValues(nameof(build), Builds.user, Builds.system, Builds.archive)} {RenderFlagValues(nameof(arch), Architectures.x64, Architectures.x86, Architectures.arm64)}
+  {fileName} {RenderFlagValues(nameof(target), Targets.linux)} {RenderFlagValues(nameof(build), Builds.deb, Builds.rpm, Builds.archive)} {RenderFlagValues(nameof(arch), Architectures.x64, Architectures.x86, Architectures.arm, Architectures.arm64)}
+  {fileName} {RenderFlagValues(nameof(target), Targets.linux)} {RenderFlagValues(nameof(build), Builds.snap)}
+
+There is only one download for {Directories.macOS} {Targets.darwin} {Versions.MacOS}+, --{nameof(arch)} --{nameof(build)} are both ignored.
+{RenderFlagValues(nameof(arch), Architectures.arm)} is assumed to be {RenderFlagValues(nameof(arch), Architectures.arm64)} when {RenderFlagValues(nameof(target), Targets.win32)} is specified.
+--{nameof(arch)} is ignored when {RenderFlagValues(nameof(target), Targets.linux)} {RenderFlagValues(nameof(build), Builds.snap)} is specified.
+{RenderFlagValues(nameof(arch), Architectures.x86)} is assumed to be {RenderFlagValues(nameof(arch), Architectures.x64)} when {RenderFlagValues(nameof(target), Targets.linux)} is specified.
+
+Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri} code github issue.";
+        }
+
+        private static string helpSum => _helpSum ?? (_helpSum = RenderHelpSummary(programFileName));
+
+        private static bool TryPresentHelp(string summary, params (string[] flags, string description, string[] values)[] opts)
+        {
+            //const int colWidth = 4;
+            const string flagDelim = ",";
+            const string flagPrefix = "  ";
+
+            var maxFlagWidth = opts.Max(x => x.flags.Sum(y => y.Length + flagPrefix.Length) + (x.flags.Length - 1) * flagDelim.Length);
+            //var flagsWidth = ((int)(maxFlagWidth / colWidth) + 1) * colWidth;
+
+            Console.WriteLine();
+
+            foreach (var line in GetDescriptionLines(summary))
+            {
+                Console.WriteLine(line);
+            }
+
+            Console.WriteLine();
 
             foreach (var (flags, description, values) in opts)
             {
-                Console.WriteLine(string.Join(flagDelim, flags));
+                Console.WriteLine(string.Join(flagDelim, flags.Select(x => flagPrefix + x)));
 
-                foreach (var line in GetDescriptionLines(description))
+                foreach (var line in GetDescriptionLines(description, maxFlagWidth))
                 {
                     Console.WriteLine(line.PadLeft(maxFlagWidth + line.Length));
                 }
@@ -266,18 +347,18 @@ namespace Code.Downloader
             return false;
         }
 
-        private static Assembly OnShowVersionAssySelector(Type rootType) => rootType.Assembly;
+        private static Assembly _programAssy;
+        private static string _programFileName;
 
-        private static bool TryShowVersion(Type rootType, Func<Type, Assembly> assySelector)
+        private static Assembly programAssy => _programAssy ?? (_programAssy = typeof(Program).Assembly);
+
+        private static string programFileName => _programFileName ?? (_programFileName = Path.GetFileName(programAssy.Location));
+
+        private static bool TryShowVersion()
         {
-            var assy = assySelector.Invoke(rootType);
-            var assyName = assy.GetName();
-            var assyFileName = Path.GetFileName(assy.Location);
-            Console.WriteLine($"{assyFileName} {assyName.Version}");
+            Console.WriteLine($"{programFileName} {programAssy.GetName().Version}");
             return false;
         }
-
-        private static bool TryShowVersion() => TryShowVersion(typeof(Program), OnShowVersionAssySelector);
 
         private static bool TryParseArguments(Func<bool> onAreAssetsDiscovered, params string[] args)
         {
@@ -307,7 +388,8 @@ namespace Code.Downloader
             build = null;
 
             bool TryPresentHelpOnReturn() => TryPresentHelp(
-                (helpOpts, "--x, what you are reading now.", defaultValues)
+                helpSum
+                , (helpOpts, "--x, what you are reading now.", defaultValues)
                 , (targetOpts, "--x VALUE, the targets.", targetValues)
                 , (archOpts, "--x VALUE, the architectures.", archValues)
                 , (buildOpts, "--x VALUE, the builds.", buildValues)
@@ -601,6 +683,32 @@ namespace Code.Downloader
                     ProcessSingle(version, t, Builds.snap);
                 }
             }
+
+            void VetDownloadFlags()
+            {
+                /* We support arm64 arch downloads for win32 targets.
+                * Downloads says "ARM" but it is really arm64 behind the link. */
+                if (target == Targets.win32 && arch == Architectures.arm)
+                {
+                    arch = Architectures.arm64;
+                }
+
+                // Assumes Debian, RPM, or Snap builds are Linux targets.
+                if (Range(Builds.deb, Builds.rpm, Builds.snap).Contains(build))
+                {
+                    target = Targets.linux;
+                }
+
+                // Assumes x64 when linux and one of its builds specified.
+                if (target == Targets.linux
+                    && Range(Builds.deb, Builds.rpm, Builds.archive).Contains(build)
+                    && !Range(Architectures.x64, Architectures.arm, Architectures.arm64).Contains(arch))
+                {
+                    arch = Architectures.x64;
+                }
+            }
+
+            VetDownloadFlags();
 
             if (all)
             {
