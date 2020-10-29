@@ -245,42 +245,6 @@ namespace Code.Downloader
             }
         }
 
-        // TODO: TBD: Multi-line descriptions are untested at this point...
-        /// <summary>
-        /// Parcels the <paramref name="s"/> first by new line separators, then according
-        /// to its fit within the known <see cref="Console.WindowWidth"/>.
-        /// </summary>
-        /// <param name="s"></param>
-        /// <param name="margin"></param>
-        /// <param name="width"></param>
-        /// <returns>The multiple lines of <paramref name="s"/> split according to
-        /// new lines and its fit within the <paramref name="width"/>.</returns>
-        private static IEnumerable<string> GetDescriptionLines(string s, int margin = 0, int? width = null)
-        {
-            var widthOrConsoleWindowWidth = width ?? Console.WindowWidth;
-
-            var lines = s.Replace("\r", "").Split(Range('\n').ToArray());
-
-            foreach (var multi in lines)
-            {
-                var t = multi;
-
-                if (string.IsNullOrEmpty(t))
-                {
-                    yield return t ?? string.Empty;
-                }
-                else
-                {
-                    while (t.Any())
-                    {
-                        var line = t.Substring(0, Math.Min(t.Length, widthOrConsoleWindowWidth - margin));
-                        t = t.Substring(line.Length);
-                        yield return line;
-                    }
-                }
-            }
-        }
-
         private static string _helpSum;
 
         private static string RenderHelpSummary(string fileName)
@@ -319,7 +283,7 @@ Based on the {Assets.codeDownloadUri} web page and informed by the {Assets.codeG
 
             Console.WriteLine();
 
-            foreach (var line in GetDescriptionLines(summary))
+            foreach (var line in summary.SplitMultiline())
             {
                 Console.WriteLine(line);
             }
@@ -330,7 +294,7 @@ Based on the {Assets.codeDownloadUri} web page and informed by the {Assets.codeG
             {
                 Console.WriteLine(string.Join(flagDelim, flags.Select(x => flagPrefix + x)));
 
-                foreach (var line in GetDescriptionLines(description, maxFlagWidth))
+                foreach (var line in description.SplitMultiline(maxFlagWidth))
                 {
                     Console.WriteLine(line.PadLeft(maxFlagWidth + line.Length));
                 }
@@ -749,6 +713,42 @@ Based on the {Assets.codeDownloadUri} web page and informed by the {Assets.codeG
             }
 
             ProcessConfiguration(Versions.version);
+        }
+
+        // TODO: TBD: Multi-line descriptions are untested at this point...
+        /// <summary>
+        /// Parcels the <paramref name="s"/> first by new line separators, then according
+        /// to its fit within the known <see cref="Console.WindowWidth"/>.
+        /// </summary>
+        /// <param name="s"></param>
+        /// <param name="margin"></param>
+        /// <param name="width"></param>
+        /// <returns>The multiple lines of <paramref name="s"/> split according to
+        /// new lines and its fit within the <paramref name="width"/>.</returns>
+        public static IEnumerable<string> SplitMultiline(this string s, int margin = 0, int? width = null)
+        {
+            var widthOrConsoleWindowWidth = width ?? Console.WindowWidth;
+
+            var lines = s.Replace("\r", "").Split(Range('\n').ToArray());
+
+            foreach (var multi in lines)
+            {
+                var t = multi;
+
+                if (string.IsNullOrEmpty(t))
+                {
+                    yield return t ?? string.Empty;
+                }
+                else
+                {
+                    while (t.Any())
+                    {
+                        var line = t.Substring(0, Math.Min(t.Length, widthOrConsoleWindowWidth - margin));
+                        t = t.Substring(line.Length);
+                        yield return line;
+                    }
+                }
+            }
         }
     }
 }
