@@ -76,255 +76,11 @@ namespace Code.Downloader
             return false;
         }
 
-        private static bool TryShowVersion()
-        {
-            Console.WriteLine($"{programFileName} {programAssy.GetName().Version}");
-            return false;
-        }
-
-        private static string RenderStringOrNull(string s)
-        {
-            const string @null = nameof(@null);
-            return s == null ? @null : $"'{s}'";
-        }
-
-        private static string RenderStringOrNull<T>(T value, Func<T, string> onRender) =>
-            RenderStringOrNull(onRender.Invoke(value));
-
-        private static string OnRenderVersion(Version version) => version == null ? null : $"{version}";
-
-        /// <summary>
-        /// Tries to Invoke the <see cref="Assets.Wget"/> asset given the <paramref name="uri"/>,
-        /// <paramref name="path"/> and additional <paramref name="args"/>.
-        /// </summary>
-        /// <param name="path">The output directory where wget should place the download.</param>
-        /// <param name="uri">The Uri that wget should use when getting the download.</param>
-        /// <param name="args">Additional command line arguments.</param>
-        /// <returns></returns>
-        private static bool TryInvokeWget(string path, string uri, params string[] args)
-        {
-            var wgetPath = Assets.wgetPath;
-
-            // -P for --directory-prefix, in this form.
-            args = args.Concat(Range("-P", path, uri)).ToArray();
-
-            if (this.dry)
-            {
-                Console.WriteLine($"{nameof(this.dry)}: {wgetPath} {string.Join(" ", args)}");
-            }
-            else
-            {
-                var startInfo = new ProcessStartInfo(wgetPath)
-                {
-                    Arguments = string.Join(" ", args)
-                };
-
-                using (var process = Process.Start(startInfo))
-                {
-                    process.WaitForExit();
-                }
-            }
-
-            return true;
-        }
-
-        /// <summary>
-        ///
-        /// </summary>
-        /// <param name="version">A rendered version string.</param>
-        /// <param name="t">A target.</param>
-        /// <param name="b">An optional build.</param>
-        /// <param name="a">An optional architecture.</param>
-        private static void ProcessSingle(OptionsParser op, string version, string t, string b = null, string a = null)
-        {
-            if (op.dry)
-            {
-                Console.WriteLine($"{nameof(op.dry)}: {nameof(ProcessSingle)}({nameof(version)}: '{version}', {nameof(t)}: '{t}', {nameof(b)}: {RenderStringOrNull(b)}, {nameof(a)}: {RenderStringOrNull(a)})");
-            }
-
-            b = b ?? string.Empty;
-            a = a ?? string.Empty;
-
-            // Render both the updateCodeUri and version bits...
-            var baseUriVersion = this.insider
-                ? $"{Assets.updateCodeUri}{version}-{nameof(this.insider)}/"
-                : $"{Assets.updateCodeUri}{version}/";
-            version = version == nameof(Versions.latest) ? $"{Versions.latest}" : version;
-
-            void MakeDirectory(string path)
-            {
-                if (op.dry)
-                {
-                    Console.WriteLine($"{nameof(op.dry)}: Making directory: {path}");
-                    return;
-                }
-
-                Directory.CreateDirectory(path);
-            }
-
-            bool TryProcessAny(string path, string versionUriPhrase)
-            {
-                MakeDirectory(path);
-                return TryInvokeWget(path, $"{baseUriVersion}{versionUriPhrase}{slashStableOrInsider}");
-            }
-
-            string RenderAssertOrAssetInsiderPhrase(params string[] parts) => string.Join(
-                "-", parts.Concat(this.InsiderParts).Where(x => !string.IsNullOrEmpty(x))
-            );
-
-            // TODO: TBD: can probable refactor the general case given a path, uri, and directory...
-            bool TryProcessWin32()
-            {
-                var build = b == Build.system ? null : b;
-                var arch = a == Architecture.x86 ? null : a;
-                return TryProcessAny(Path.Combine(version, t, a), RenderAssertOrAssetInsiderPhrase(t, arch, build));
-            }
-
-            bool TryProcessLinux()
-            {
-                var build = b == Build.archive ? null : b;
-
-                var arch = b == Build.snap ? Architecture.x64
-                    : (a == Architecture.arm ? Architecture.armhf : a);
-
-                var phrase = RenderAssertOrAssetInsiderPhrase(t, build, arch);
-
-                return b == Build.snap
-                    ? TryProcessAny(Path.Combine(version, t, b), phrase)
-                    : TryProcessAny(Path.Combine(version, t, a), phrase);
-            }
-
-            bool TryProcessDarwin() => TryProcessAny(Path.Combine(version, Directories.macOS, $"{Versions.MacOS}+"), RenderAssertOrAssetInsiderPhrase(t));
-
-            switch (t)
-            {
-                case Target.win32:
-                    TryProcessWin32();
-                    break;
-
-                case Target.linux:
-                    TryProcessLinux();
-                    break;
-
-                case Target.darwin:
-                    TryProcessDarwin();
-                    break;
-            }
-        }
-
-        /// <summary>
-        ///
-        /// </summary>
-        /// <param name="v">A version.</param>
-        /// <param name="t">A target.</param>
-        /// <param name="b">A build.</param>
-        /// <param name="a">An architecture.</param>
-        private static void ProcessConfiguration(OptionsParser op, Version v)
-        {
-            var version = v == Versions.latest ? nameof(Versions.latest) : $"{v}";
-
-            const string @null = nameof(@null);
-
-            if (op.dry)
-            {
-                Console.WriteLine($"{nameof(op.dry)}: {nameof(ProcessConfiguration)}({nameof(v)}: {RenderStringOrNull(v, OnRenderVersion)}), {nameof(version)}: {RenderStringOrNull(version)}");
-            }
-
-            void ProcessMacOS(string t)
-            {
-                if (t == Targets.darwin)
-                {
-                    ProcessSingle(version, t);
-                }
-            }
-
-            void ProcessWin32(string t, string b = null, string a = null)
-            {
-                var builds = (string.IsNullOrEmpty(b) ? Build.win32 : Range(b)).ToArray();
-                var arches = (string.IsNullOrEmpty(a) ? Architecture.win32 : Range(a)).ToArray();
-
-                if (t == Targets.win32)
-                {
-                    foreach (var arch in arches)
-                    {
-                        foreach (var build in builds)
-                        {
-                            ProcessSingle(version, t, build, arch);
-                        }
-                    }
-                }
-            }
-
-            void ProcessLinux(string t, string b = null, string a = null)
-            {
-                var builds = (string.IsNullOrEmpty(b) ? Build.linux : Range(b)).ToArray();
-                var arches = (string.IsNullOrEmpty(a) ? Architecture.linux : Range(a)).ToArray();
-
-                if (t == Targets.linux)
-                {
-                    foreach (var arch in arches)
-                    {
-                        foreach (var build in builds)
-                        {
-                            ProcessSingle(version, t, build, arch);
-                        }
-                    }
-
-                    ProcessSingle(version, t, Build.snap);
-                }
-            }
-
-            void VetDownloadFlags()
-            {
-                /* We support arm64 arch downloads for win32 targets.
-                * Downloads says "ARM" but it is really arm64 behind the link. */
-                if (target == Targets.win32 && arch == Architecture.arm)
-                {
-                    arch = Architecture.arm64;
-                }
-
-                // Assumes Debian, RPM, or Snap builds are Linux targets.
-                if (Range(Build.deb, Build.rpm, Build.snap).Contains(build))
-                {
-                    target = Targets.linux;
-                }
-
-                // Assumes x64 when linux and one of its builds specified.
-                if (target == Targets.linux
-                    && Range(Build.deb, Build.rpm, Build.archive).Contains(build)
-                    && !Range(Architecture.x64, Architecture.arm, Architecture.arm64).Contains(arch))
-                {
-                    arch = Architecture.x64;
-                }
-            }
-
-            VetDownloadFlags();
-
-            if (all)
-            {
-                ProcessWin32(Targets.win32);
-                ProcessLinux(Targets.linux);
-                ProcessMacOS(Targets.darwin);
-            }
-            else
-            {
-                var t = target;
-                var b = build;
-                var a = arch;
-
-                ProcessWin32(t ?? string.Empty, b, a);
-                ProcessLinux(t ?? string.Empty, b, a);
-                ProcessMacOS(t ?? string.Empty);
-            }
-        }
-
-        private static Assets CurrentAssets { get; } = new Assets();
-
-        private static Versions CurrentVersions { get; } = new Versions();
+        private static DownloadProcessor CurrentProcessor { get; } = new DownloadProcessor();
 
         public static void Main(string[] args)
         {
-            var op = new OptionsParser();
+            var op = CurrentProcessor.CurrentOptions;
 
             if (op.TryParseArguments(CurrentAssets, CurrentVersions, args);))
             {
@@ -345,90 +101,42 @@ namespace Code.Downloader
                 ReportNameValuePair(nameof(op.stable), op.stable);
             }
 
-            ProcessConfiguration(Versions.version);
+            CurrentProcessor.ProcessConfiguration();
         }
 
-        private const int maxConsoleWindowWidth = 100;
-
-        // TODO: TBD: Multi-line descriptions are untested at this point...
         /// <summary>
-        /// Parcels the <paramref name="s"/> first by new line separators, then according
-        /// to its fit within the known <see cref="Console.WindowWidth"/>.
+        /// Gets the Maximum allowable <see cref="Console.WindowWidth"/>, defaults to <c>100</c>.
         /// </summary>
-        /// <param name="s"></param>
-        /// <param name="margin"></param>
-        /// <param name="width"></param>
-        /// <returns>The multiple lines of <paramref name="s"/> split according to
-        /// new lines and its fit within the <paramref name="width"/>.</returns>
-        public static IEnumerable<string> SplitMultiline(this string s, int margin = 0, int? width = null)
-        {
-            var widthOrConsoleWindowWidth = Math.Min(width ?? Console.WindowWidth, maxConsoleWindowWidth);
-
-            bool IsWhiteSpace(char ch) => char.IsWhiteSpace(ch);
-
-            var lines = s.Replace("\r", "").Split(Range('\n').ToArray());
-
-            foreach (var multi in lines)
-            {
-                var t = multi;
-
-                if (string.IsNullOrEmpty(t))
-                {
-                    yield return t ?? string.Empty;
-                }
-                else
-                {
-                    while (t.Any())
-                    {
-                        var line = t.Substring(0, Math.Min(t.Length, widthOrConsoleWindowWidth - margin));
-                        t = t.Substring(line.Length);
-
-                        // Seems to be sufficiently to the edge cases.
-                        if (line.Length == widthOrConsoleWindowWidth && t.Any()
-                            && !IsWhiteSpace(line.Last()) && !IsWhiteSpace(t.First()))
-                        {
-                            for (var last = line.Last(); !IsWhiteSpace(last); last = line.Last())
-                            {
-                                // While we "can" do this in the increment for phrase, it is clearer to do them here.
-                                line = line.Substring(0, line.Length - 1);
-                                t = last + t;
-                            }
-                        }
-
-                        yield return line.Trim();
-                    }
-                }
-            }
-        }
+        internal const int MaxConsoleWindowWidth { get; } = 100;
     }
 
-    private static class Directories
+    public static class Directories
     {
         internal const string Windows = nameof(Windows);
         internal const string x64 = nameof(x64);
         internal const string x86 = nameof(x86);
         internal const string arm = nameof(arm);
         internal const string arm64 = nameof(arm64);
+        internal const string zip = nameof(zip);
+        internal const string tar = nameof(tar);
+        internal const string gz = nameof(gz);
     }
 
     public class Versions
     {
-        /// <summary>
-        /// Gets the Latest Version for internal use. When we know that the
-        /// <see cref="version"/> request is for the Latest, then we can
-        /// simply use the word, &quot;latest&quot;.
-        /// </summary>
-        public static Version latest { get; } = Version.Parse("1.50.1");
-
         private Version _version;
 
         public Version version
         {
-            get => _version ?? this.latest;
+            get => this.Latest ? actualLatest : (_version ?? actualLatest);
             set => _version = value;
         }
 
+        public bool Latest { get; set; }
+
         public static Version macOS { get; } = Version.Parse("10.10");
+
+        private static Version actualLatest { get; } = Version.Parse("1.50.1");
     }
 
     internal class Assets
@@ -614,6 +322,12 @@ There is only one download for {nameof(Versions.macOS)} {darwin} {Versions.macOS
 Based on the {CodeDownloadUri} web page and informed by the {CodeGithubIssueUri} code github issue.";
         }
 
+        private bool TryShowVersion()
+        {
+            Console.WriteLine($"{ProgramFileName} {ProgramAssy.GetName().Version}");
+            return false;
+        }
+
         public bool TryParseArguments(Assets currentAssets, Versions currentVersions, params string[] args)
         {
             string OnRenderValue<T>(T value) => $"{value}";
@@ -627,7 +341,7 @@ Based on the {CodeDownloadUri} web page and informed by the {CodeGithubIssueUri}
             var buildOpts = Range($"--{nameof(Build).ToLower()}", $"-{nameof(Build).ToLower().First()}").ToArray();
             var allOpts = Range($"--{nameof(this.all)}").ToArray();
             var dryOpts = Range($"--{nameof(this.dry)}").ToArray();
-            var codeVersionOpts = Range($"--code-{nameof(Version).ToLower()}", $"-c{nameof(Version).ToLower().First()}").ToArray();
+            var codeVersionOpts = Range($"--code-{nameof(currentVersions.version).ToLower()}", $"-c{nameof(currentVersions.version).ToLower().First()}").ToArray();
             var insiderOpts = Range($"--{nameof(this.insider)}", $"-{nameof(this.insider).First()}").ToArray();
             var versionOpts = Range($"--{nameof(Version).ToLower()}", $"-{nameof(Version).ToLower().First()}").ToArray();
 
@@ -644,6 +358,8 @@ Based on the {CodeDownloadUri} web page and informed by the {CodeGithubIssueUri}
             this.CurrentTarget = default;
             this.CurrentArch = default;
             this.CurrentBuild = default;
+            currentVersions.version = Versions.actualLatest;
+            currentVersions.latest = false;
 
             bool TryPresentHelpOnReturn() => TryPresentHelp(
                 this.HelpSummary
@@ -653,7 +369,7 @@ Based on the {CodeDownloadUri} web page and informed by the {CodeGithubIssueUri}
                 , (buildOpts, "--x VALUE, the builds.", buildValues)
                 , (allOpts, "--x, get all targets, architectures, and builds", defaultValues)
                 , (dryOpts, "--x, performs the features in dry run scenarios", defaultValues)
-                , (codeVersionOpts, "--x VALUE, specify the Code version, or latest", Range(nameof(Versions.latest), nameof(Versions.version).ToUpper()).ToArray())
+                , (codeVersionOpts, "--x VALUE, specify the Code version, or latest", Range(nameof(currentVersions.latest), nameof(currentVersions.version).ToUpper()).ToArray())
                 , (insiderOpts, $"--x, whether to get the {nameof(this.insider)} or {nameof(this.stable)}", defaultValues)
                 , (versionOpts, "--x, whether to show the downloader version", defaultValues)
             );
@@ -735,7 +451,15 @@ Based on the {CodeDownloadUri} web page and informed by the {CodeGithubIssueUri}
 
                 if (codeVersionOpts.Contains(arg))
                 {
-                    currentVersions.version = Version.Parse(arg);
+                    arg = GetArgument(++i);
+                    if (arg == nameof(currentVersions.latest))
+                    {
+                        currentVersions.latest = true;
+                    }
+                    else
+                    {
+                        currentVersions.version = Version.Parse(arg);
+                    }
                     continue;
                 }
             }
@@ -751,6 +475,254 @@ Based on the {CodeDownloadUri} web page and informed by the {CodeGithubIssueUri}
             }
 
             return i == args.Length;
+        }
+    }
+
+    public class DownloadProcessor
+    {
+        internal Assets CurrentAssets { get; } = new Assets();
+
+        internal Versions CurrentVersions { get; } = new Versions();
+
+        internal OptionsParser CurrentOptions { get; } = new OptionsParser();
+
+        private string Version => this.CurrentVersions.version == Versions.latest ? nameof(Versions.latest) : $"{version}";
+
+        /// <summary>
+        /// Tries to Invoke the <see cref="Assets.Wget"/> asset given the <paramref name="uri"/>,
+        /// <paramref name="path"/> and additional <paramref name="args"/>.
+        /// </summary>
+        /// <param name="path">The output directory where wget should place the download.</param>
+        /// <param name="uri">The Uri that wget should use when getting the download.</param>
+        /// <param name="args">Additional command line arguments.</param>
+        /// <returns></returns>
+        private bool TryInvokeWget(string path, string uri, params string[] args)
+        {
+            var wgetPath = Assets.wgetPath;
+
+            // -P for --directory-prefix, in this form.
+            args = args.Concat(Range("-P", path, uri)).ToArray();
+
+            if (this.dry)
+            {
+                Console.WriteLine($"{nameof(this.dry)}: {wgetPath} {string.Join(" ", args)}");
+            }
+            else
+            {
+                var startInfo = new ProcessStartInfo(wgetPath)
+                {
+                    Arguments = string.Join(" ", args)
+                };
+
+                using (var process = Process.Start(startInfo))
+                {
+                    process.WaitForExit();
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        ///
+        /// </summary>
+        /// <param name="version">A rendered version string.</param>
+        /// <param name="t">A target.</param>
+        /// <param name="b">An optional build.</param>
+        /// <param name="a">An optional architecture.</param>
+        private void ProcessSingle(string version, string t, string b = null, string a = null)
+        {
+            var op = this.CurrentOptions;
+
+            if (op.dry)
+            {
+                Console.WriteLine($"{nameof(op.dry)}: {nameof(ProcessSingle)}({nameof(version)}: '{version}', {nameof(t)}: '{t}', {nameof(b)}: {b.RenderStringOrNull()}, {nameof(a)}: {a.RenderStringOrNull()})");
+            }
+
+            b = b ?? string.Empty;
+            a = a ?? string.Empty;
+
+            // TODO: TBD: figure on better versioning strategies...
+            version = version == nameof(Versions.latest) ? $"{Versions.latest}" : version;
+
+            // Render both the updateCodeUri and version bits...
+            var baseUriVersion = this.insider
+                ? $"{Assets.updateCodeUri}{version}-{nameof(this.insider)}/"
+                : $"{Assets.updateCodeUri}{version}/";
+
+            void MakeDirectory(string path)
+            {
+                if (op.dry)
+                {
+                    Console.WriteLine($"{nameof(op.dry)}: Making directory: {path}");
+                    return;
+                }
+
+                Directory.CreateDirectory(path);
+            }
+
+            bool TryProcessAny(string path, string versionUriPhrase)
+            {
+                MakeDirectory(path);
+                return TryInvokeWget(path, $"{baseUriVersion}{versionUriPhrase}{slashStableOrInsider}");
+            }
+
+            string RenderAssertOrAssetInsiderPhrase(params string[] parts) => string.Join(
+                "-", parts.Concat(this.InsiderParts).Where(x => !string.IsNullOrEmpty(x))
+            );
+
+            // TODO: TBD: can probable refactor the general case given a path, uri, and directory...
+            bool TryProcessWin32()
+            {
+                var build = b == Build.system ? null : b;
+                var arch = a == Architecture.x86 ? null : a;
+                return TryProcessAny(Path.Combine(version, t, a), RenderAssertOrAssetInsiderPhrase(t, arch, build));
+            }
+
+            bool TryProcessLinux()
+            {
+                var build = b == Build.archive ? null : b;
+
+                var arch = b == Build.snap ? Architecture.x64
+                    : (a == Architecture.arm ? Architecture.armhf : a);
+
+                var phrase = RenderAssertOrAssetInsiderPhrase(t, build, arch);
+
+                return b == Build.snap
+                    ? TryProcessAny(Path.Combine(version, t, b), phrase)
+                    : TryProcessAny(Path.Combine(version, t, a), phrase);
+            }
+
+            bool TryProcessDarwin() => TryProcessAny(Path.Combine(version, Directories.macOS, $"{Versions.MacOS}+"), RenderAssertOrAssetInsiderPhrase(t));
+
+            switch (t)
+            {
+                case Target.win32:
+                    TryProcessWin32();
+                    break;
+
+                case Target.linux:
+                    TryProcessLinux();
+                    break;
+
+                case Target.darwin:
+                    TryProcessDarwin();
+                    break;
+            }
+        }
+
+        /// <summary>
+        ///
+        /// </summary>
+        /// <param name="v">A version.</param>
+        /// <param name="t">A target.</param>
+        /// <param name="b">A build.</param>
+        /// <param name="a">An architecture.</param>
+        public void ProcessConfiguration()
+        {
+            var op = this. CurrentOptions;
+
+            const string @null = nameof(@null);
+
+            var version = this.Version;
+
+            if (op.dry)
+            {
+                static string OnRenderVersion(Version version) => version == null ? null : $"{version}";
+
+                Console.WriteLine($"{nameof(op.dry)}: {nameof(ProcessConfiguration)}({nameof(v)}: {RenderStringOrNull(v, OnRenderVersion)}), {nameof(version)}: {RenderStringOrNull(version)}");
+            }
+
+            void ProcessMacOS((Target t, Build? b, Architecture? a) tuple)
+            {
+                var (t, _, __) = tuple;
+
+                if (t == Targets.darwin)
+                {
+                    ProcessSingle(version, t);
+                }
+            }
+
+            void ProcessWin32((Target t, Build? b, Architecture? a) tuple)
+            {
+                var (t, b, a) = tuple;
+                var builds = (string.IsNullOrEmpty(b) ? Build.system : Range(b)).ToArray();
+                var arches = (string.IsNullOrEmpty(a) ? Architecture.x64 : Range(a)).ToArray();
+
+                if (t == Targets.win32)
+                {
+                    foreach (var arch in arches)
+                    {
+                        foreach (var build in builds)
+                        {
+                            ProcessSingle(version, t, build, arch);
+                        }
+                    }
+                }
+            }
+
+            void ProcessLinux((Target t, Build? b, Architecture? a) tuple)
+            {
+                var (t, b, a) = tuple;
+                var builds = Range(b ?? Build.deb).ToArray();
+                var arches = Range(a ?? Architecture.x64).ToArray();
+
+                if (t == Targets.linux)
+                {
+                    foreach (var arch in arches)
+                    {
+                        foreach (var build in builds)
+                        {
+                            ProcessSingle(version, t, build, arch);
+                        }
+                    }
+
+                    ProcessSingle(version, t, Build.snap);
+                }
+            }
+
+            void VetDownloadFlags()
+            {
+                /* We support arm64 arch downloads for win32 targets.
+                * Downloads says "ARM" but it is really arm64 behind the link. */
+                if (target == Targets.win32 && arch == Architecture.arm)
+                {
+                    arch = Architecture.arm64;
+                }
+
+                // Assumes Debian, RPM, or Snap builds are Linux targets.
+                if (Range(Build.deb, Build.rpm, Build.snap).Contains(build))
+                {
+                    target = Targets.linux;
+                }
+
+                // Assumes x64 when linux and one of its builds specified.
+                if (target == Targets.linux
+                    && Range(Build.deb, Build.rpm, Build.archive).Contains(build)
+                    && !Range(Architecture.x64, Architecture.arm, Architecture.arm64).Contains(arch))
+                {
+                    arch = Architecture.x64;
+                }
+            }
+
+            VetDownloadFlags();
+
+            if (all)
+            {
+                ProcessWin32(Targets.win32);
+                ProcessLinux(Targets.linux);
+                ProcessMacOS(Targets.darwin);
+            }
+            else
+            {
+                var t = target;
+                var b = build;
+                var a = arch;
+
+                ProcessWin32(t ?? string.Empty, b, a);
+                ProcessLinux(t ?? string.Empty, b, a);
+                ProcessMacOS(t ?? string.Empty);
+            }
         }
     }
 
@@ -904,5 +876,79 @@ Based on the {CodeDownloadUri} web page and informed by the {CodeGithubIssueUri}
                 this.Elements = (this.Target, null, null);
             }
         }
+    }
+}
+
+namespace System
+{
+    internal static class StringExtensions
+    {
+        public static string RenderStringOrNull(this string s)
+        {
+            const string @null = nameof(@null);
+            return s == null ? @null : $"'{s}'";
+        }
+
+        // TODO: TBD: Multi-line descriptions are untested at this point...
+        /// <summary>
+        /// Parcels the <paramref name="s"/> first by new line separators, then according
+        /// to its fit within the known <see cref="Console.WindowWidth"/>.
+        /// </summary>
+        /// <param name="s"></param>
+        /// <param name="margin"></param>
+        /// <param name="width"></param>
+        /// <returns>The multiple lines of <paramref name="s"/> split according to
+        /// new lines and its fit within the <paramref name="width"/>.</returns>
+        public static IEnumerable<string> SplitMultiline(this string s, int margin = 0, int? width = null)
+        {
+            var widthOrConsoleWindowWidth = Math.Min(width ?? Console.WindowWidth, Program.MaxConsoleWindowWidth);
+
+            bool IsWhiteSpace(char ch) => char.IsWhiteSpace(ch);
+
+            var lines = s.Replace("\r", "").Split(Range('\n').ToArray());
+
+            foreach (var multi in lines)
+            {
+                var t = multi;
+
+                if (string.IsNullOrEmpty(t))
+                {
+                    yield return t ?? string.Empty;
+                }
+                else
+                {
+                    while (t.Any())
+                    {
+                        var line = t.Substring(0, Math.Min(t.Length, widthOrConsoleWindowWidth - margin));
+                        t = t.Substring(line.Length);
+
+                        // Seems to be sufficiently to the edge cases.
+                        if (line.Length == widthOrConsoleWindowWidth && t.Any()
+                            && !IsWhiteSpace(line.Last()) && !IsWhiteSpace(t.First()))
+                        {
+                            for (var last = line.Last(); !IsWhiteSpace(last); last = line.Last())
+                            {
+                                // While we "can" do this in the increment for phrase, it is clearer to do them here.
+                                line = line.Substring(0, line.Length - 1);
+                                t = last + t;
+                            }
+                        }
+
+                        yield return line.Trim();
+                    }
+                }
+            }
+        }
+    }
+}
+
+namespace System.Collections.ObjectModel
+{
+    using System;
+
+    internal static class ObjectExtensions
+    {
+        public static string RenderStringOrNull<T>(this T value, Func<T, string> onRender) =>
+            onRender.Invoke(value).RenderStringOrNull();
     }
 }
