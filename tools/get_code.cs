@@ -742,6 +742,13 @@ namespace Code.Downloader
             this.CodeVersionOpts = Range($"{hyp}{hyp}{CodeVersion.code}{hyp}{CodeVersion.version}"
                 , $"{hyp}{CodeVersion.code.ToString().First()}{CodeVersion.version.ToString().First()}").ToArray();
 
+            /// <summary>
+            /// Returns the valid combinations corresponding to the <see cref="Target"/>
+            /// <paramref name="key"/>. This is our way of vetting the valid from invalid
+            /// permutations for quality control purposes. As long as the combination is
+            /// valid we let it pass. But when it is determined to be invalid, then we may
+            /// report usage.
+            /// </summary>
             IEnumerable<Build> OnGetBuildsForTarget(Target key)
             {
                 if (key == win32)
@@ -761,6 +768,11 @@ namespace Code.Downloader
                 yield return archive;
             }
 
+            /// <summary>
+            /// Returns the valid combinations corresponding to the <see cref="Target"/>
+            /// <see cref="Build"/> <paramref name="pair"/> combinations. Also ditto further
+            /// <see cref=""/> remarks.
+            /// </summary>
             IEnumerable<Architecture?> OnGetArchesForTargetBuild((Target t, Build b) pair)
             {
                 if (pair.t == win32)
@@ -776,8 +788,9 @@ namespace Code.Downloader
                 {
                     if (pair.b == snap)
                     {
-                        // A corner case, we do not care, but when mapping to paths, we want the x64 arch.
                         yield return null;
+                        // Null is allowable, we will default that to x64 for path composition purposes.
+                        yield return x64;
                     }
                     else
                     {
