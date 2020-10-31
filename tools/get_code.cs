@@ -808,6 +808,20 @@ namespace Code.Downloader
                 }
             }
 
+            IEnumerable<(Target t, Build b, Architecture? a)> GetAllDownloadSpecs()
+            {
+                foreach (Target t in win32.GetEnumValues())
+                {
+                    foreach (Build b in this.BuildsForTarget[t])
+                    {
+                        foreach (Architecture? a in this.ArchesForTargetBuild[(t, b)])
+                        {
+                            yield return (t, b, a);
+                        }
+                    }
+                }
+            }
+
             this.BuildsForTarget = Range(win32, linux, darwin)
                 .Select(key => (key, Values: OnGetBuildsForTarget(key).ToArray()))
                 .ToDictionary(x => x.key, x => x.Values);
@@ -815,6 +829,8 @@ namespace Code.Downloader
             this.ArchesForTargetBuild = this.BuildsForTarget
                 .SelectMany(pair => pair.Value.Select(b => (t: pair.Key, b)))
                 .ToDictionary(x => x, x => OnGetArchesForTargetBuild(x).ToArray());
+
+            this.AllDownloadSpecs = GetAllDownloadSpecs().ToArray();
         }
 
         private string RenderHelpSummary(string fileName)
@@ -901,12 +917,16 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             , (this.VersionOpts, "--x, whether to show the downloader version", this.DefaultVals)
         );
 
-        private void ReportDryRun()
+        private void ReportDryRun(int i, params string[] args)
         {
             if (!this.IsDry)
             {
                 return;
             }
+
+            const string squareBrackets = "[]";
+            const char comma = ',';
+            this.Writer.WriteLine($"{nameof(Dry)}: {nameof(args)}: {string.Join(string.Join($"{comma} ", args), squareBrackets.ToArray())}, {nameof(i)}: {i}");
 
             void ReportNameValuePair(string name, object value) => this.Writer.WriteLine(
                 $"{RenderNameObjectPairs((name, value)).Single()}"
@@ -943,10 +963,42 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
         }
 
         /// <summary>
-        /// Gets the DownloadSpecs for use throughout the tool.
+        /// We will start from the valid set of download specifications. We will select subsets
+        /// of these depending on the command line arguments that we are given.
         /// </summary>
-        internal IEnumerable<(Target t, Build b, Architecture a)> DownloadSpecs { get; private set; }
-             = Range<(Target t, Build b, Architecture a)>().ToArray();
+        private IEnumerable<(Target t, Build b, Architecture? a)> AllDownloadSpecs { get; }
+
+        private IEnumerable<(Target t, Build b, Architecture? a)> GetSelectedDownloadSpecs(Target? t, Build? b, Architecture? a)
+        {
+            // Do a little screening of the command line arguments ensuring optimum alignment.
+            if (t == linux && b == snap && a == null)
+            {
+                a = x64;
+            }
+
+            if (t == darwin && b != archive && a != null)
+            {
+                b = archive;
+                a = null;
+            }
+
+            return this.AllDownloadSpecs.Where(x =>
+                (t == null || t == x.t)
+                && (b == null || b == x.b)
+                && (a == null || a == x.a)
+            );
+        }
+
+        private IEnumerable<(Target t, Build b, Architecture? a)> _selectedDownloadSpecs;
+
+        /// <summary>
+        /// Gets the DownloadSpecs for use throughout the tool. This is calculated just once
+        /// per session, so be careful of the timing during which it is called. Ensure that
+        /// the command line arguments have all been properly parsed by that moment.
+        /// </summary>
+        internal IEnumerable<(Target t, Build b, Architecture? a)> SelectedDownloadSpecs => this._selectedDownloadSpecs ?? (
+            this._selectedDownloadSpecs = GetSelectedDownloadSpecs(this.target, this.build, this.arch)
+        );
 
         public bool TryParseArguments(params string[] args)
         {
@@ -965,15 +1017,20 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
             int i;
 
+            void OnShowHelp(Help value)
+            {
+                this.help = value;
+                TryShowVersion();
+                TryPresentHelpOnReturn(this.Versions);
+            }
+
             for (i = 0; i < args.Length; i++)
             {
                 var arg = GetArgument(i);
 
                 if (this.HelpOpts.Contains(arg))
                 {
-                    this.help = show;
-                    TryShowVersion();
-                    TryPresentHelpOnReturn(this.Versions);
+                    OnShowHelp(show);
                     break;
                 }
 
@@ -1036,30 +1093,32 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                     {
                         this.Versions.version = v;
                     }
-                    else if (arg.ParseEnum<CodeVersion>() == latest)
+                    else if (arg.ParseEnum<CodeVersion>().HasValue)
                     {
+                        // We make the assumption, the only other CodeVersion argument we accept is the latest.
                         this.Versions.selector = latest;
                     }
                     continue;
                 }
             }
 
-            ReportDryRun();
+            ReportDryRun(i, args);
 
-            if (this.IsDry)
+            var downloadSpecs = this.SelectedDownloadSpecs;
+
+            if (!downloadSpecs.Any())
             {
-                const string squareBrackets = "[]";
-                const char comma = ',';
-                this.Writer.WriteLine($"{nameof(Dry)}: {nameof(args)}: {string.Join(string.Join($"{comma} ", args), squareBrackets.ToArray())}, {nameof(i)}: {i}");
+                OnShowHelp(show);
+                return false;
             }
 
             /* Arguments are considered parsed successfully when:
              * 1. Arguments processed successfully
-             * 2. Download specifications properly aligned
+             * 2. Download specifications are properly aligned
              * 3. Assets properly discovered
              */
             return i == args.Length
-                && this.DownloadSpecs.Any()
+                && downloadSpecs.Any()
                 && this.CurrentAssets.AreDiscovered(this.Writer);
         }
     }
@@ -1484,10 +1543,13 @@ namespace System
     internal static class EnumExtensions
     {
         /// <summary>
-        /// Parses the <see cref="string"/> <paramref name="s"/> as the <see cref="Enum"/>
-        /// <typeparamref name="T"/> type.
-        /// </summary>
-        public static T? ParseEnum<T>(this string s)
+        /// Returns the <see cref="Enum.GetValues"/> associated with the <typeparamref name="T"/>
+        /// type. The parameter <parmaref name="_"/> is here as a placeholder driving the generic
+        /// type. That is all.
+        /// <summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="_"></param>
+        public static IEnumerable<T> GetEnumValues<T>(this T _)
             where T : struct
         {
             var type = typeof(T);
@@ -1497,7 +1559,21 @@ namespace System
                 throw new InvalidOperationException($"Parse type '{type.FullName}' is not an enum");
             }
 
-            foreach (T value in Enum.GetValues(type))
+            return Enum.GetValues(typeof(T)).OfType<T>();
+        }
+
+        /// <summary>
+        /// Parses the <see cref="string"/> <paramref name="s"/> as the <see cref="Enum"/>
+        /// <typeparamref name="T"/> type.
+        /// </summary>
+        public static T? ParseEnum<T>(this string s)
+            where T : struct
+        {
+            var defaultValue = default(T);
+
+            var values = defaultValue.GetEnumValues().ToArray();
+
+            foreach (T value in values)
             {
                 if ($"{value}".ToLower() == (s ?? string.Empty).ToLower())
                 {
@@ -1505,7 +1581,7 @@ namespace System
                 }
             }
 
-            return default;
+            return defaultValue;
         }
     }
 
