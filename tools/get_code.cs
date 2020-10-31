@@ -471,7 +471,7 @@ namespace Code.Downloader
 
                 var pathCand = process_StandardOutput.ReadLine();
 
-                if (File.Exists(pathCand))
+                if (pathCand.FileExists())
                 {
                     path = pathCand;
                 }
@@ -479,7 +479,8 @@ namespace Code.Downloader
                 process.WaitForExit();
             }
 
-            return File.Exists(path);
+            // Probably was safe before, but do the null check anyway.
+            return path.FileExists();
         }
 
         /// <summary>
@@ -1653,5 +1654,14 @@ namespace System.Collections.ObjectModel
     {
         public static string RenderStringOrNull<T>(this T value, Func<T, string> onRender) =>
             onRender.Invoke(value).RenderStringOrNull();
+    }
+}
+
+namespace System.IO
+{
+    internal static class FileExtensions
+    {
+        public static bool FileExists(this string path) =>
+            path != null && File.Exists(path);
     }
 }
