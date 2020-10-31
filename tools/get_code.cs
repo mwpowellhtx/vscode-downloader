@@ -29,49 +29,6 @@ namespace Code.Downloader
     using static NoPause;
     using static AssetManager;
 
-    // darwin
-    // linux-arm64
-    // linux-armhf
-    // linux-deb-arm64
-    // linux-deb-armhf
-    // linux-deb-x64
-    // linux-rpm-arm64
-    // linux-rpm-armhf
-    // linux-rpm-x64
-    // linux-snap-x64
-    // linux-x64
-    // win32
-    // win32-archive
-    // win32-arm64
-    // win32-arm64-archive
-    // win32-arm64-user
-    // win32-user
-    // win32-x64
-    // win32-x64-archive
-    // win32-x64-user
-
-    // win32+system+x86+version => VSCodeSetup-ia32-1.49.2.exe
-    // win32+user+x86+version => VSCodeUserSetup-ia32-1.49.2.exe
-    // win32+archive+x86+version => VSCode-win32-ia32-1.49.2.zip
-
-    // win32+system+x64+version => VSCodeSetup-x86-1.49.2.exe
-    // win32+user+x64+version => VSCodeUserSetup-x86-1.49.2.exe
-    // win32+archive+x64+version => VSCode-win32-x86-1.49.2.zip
-
-    // win32+system+x64+version => VSCodeSetup-x86-1.49.2.exe
-    // win32+user+x64+version => VSCodeUserSetup-x86-1.49.2.exe
-    // win32+archive+x64+version => VSCode-win32-x86-1.49.2.zip
-
-    // win32+system+arm64+version => VSCodeSetup-arm64-1.49.2.exe
-    // win32+user+arm64+version => VSCodeUserSetup-arm64-1.49.2.exe
-    // win32+archive+arm64+version => VSCode-win32-arm64-1.49.2.zip
-
-    // linux+deb+x64+version => code_1.49.2-amd64.deb
-    // linux+rpm+x64+version => code_1.49.2-amd64.rpm
-    // linux+archive+x64+version => code_1.49.2-amd64.tar.gz
-
-    // darwin+version+stable => VSCode-darwin-1.49.2-stable.zip
-
     public enum CodeVersion
     {
         /// <summary>
@@ -319,9 +276,72 @@ namespace Code.Downloader
         internal const string codeDownloadUri = "https://code.visualstudio.com/Download";
 
         /// <summary>
-        /// &quot;https://github.com/microsoft/vscode/issues/109329&quot;
+        /// The following are the valid combinations. <see cref="darwin"/> supports only
+        /// <see cref="archive"/> <see cref="Architecture"/> builds. <see cref="linux"/> without
+        /// the build is considered a
+        /// <see cref="!:https://en.wikipedia.org/wiki/Tar_(computing)#Suffixes_for_compressed_files">tarball</see>
+        /// archive, with the file extension <c>.tar.gz</c>. <see cref="linux"/>
+        /// <see cref="snap"/> <see cref="Build"/> does not have a corresponding
+        /// <see cref="Architecture"/>. <see cref="win32"/> targets without a target
+        /// <see cref="Architecture"/> or <see cref="Build"/> are considered <see cref="x86"/>
+        /// or <see cref="system"/>, respectively. Lastly, versions are always specified in terms
+        /// of <c>major.minor.patch</c>.
+        /// <br/>
+        /// <br/>darwin
+        /// <br/>linux-arm64
+        /// <br/>linux-armhf
+        /// <br/>linux-deb-arm64
+        /// <br/>linux-deb-armhf
+        /// <br/>linux-deb-x64
+        /// <br/>linux-rpm-arm64
+        /// <br/>linux-rpm-armhf
+        /// <br/>linux-rpm-x64
+        /// <br/>linux-snap-x64
+        /// <br/>linux-x64
+        /// <br/>win32
+        /// <br/>win32-archive
+        /// <br/>win32-arm64
+        /// <br/>win32-arm64-archive
+        /// <br/>win32-arm64-user
+        /// <br/>win32-user
+        /// <br/>win32-x64
+        /// <br/>win32-x64-archive
+        /// <br/>win32-x64-user
+        /// <br/>
+        /// <br/>And concerning naming conventions:
+        /// <br/>
+        /// <br/>win32+system+x86+version => VSCodeSetup-ia32-major.minor.patch.exe
+        /// <br/>win32+user+x86+version => VSCodeUserSetup-ia32-major.minor.patch.exe
+        /// <br/>win32+archive+x86+version => VSCode-win32-ia32-major.minor.patch.zip
+        ///
+        /// <br/>win32+system+x64+version => VSCodeSetup-x86-major.minor.patch.exe
+        /// <br/>win32+user+x64+version => VSCodeUserSetup-x86-major.minor.patch.exe
+        /// <br/>win32+archive+x64+version => VSCode-win32-x86-major.minor.patch.zip
+        ///
+        /// <br/>win32+system+x64+version => VSCodeSetup-x86-major.minor.patch.exe
+        /// <br/>win32+user+x64+version => VSCodeUserSetup-x86-major.minor.patch.exe
+        /// <br/>win32+archive+x64+version => VSCode-win32-x86-major.minor.patch.zip
+        ///
+        /// <br/>win32+system+arm64+version => VSCodeSetup-arm64-major.minor.patch.exe
+        /// <br/>win32+user+arm64+version => VSCodeUserSetup-arm64-major.minor.patch.exe
+        /// <br/>win32+archive+arm64+version => VSCode-win32-arm64-major.minor.patch.zip
+        ///
+        /// <br/>linux+deb+x64+version => code_major.minor.patch-amd64.deb
+        /// <br/>linux+rpm+x64+version => code_major.minor.patch-amd64.rpm
+        /// <br/>linux+archive+x64+version => code_major.minor.patch-amd64.tar.gz
+        ///
+        /// <br/>darwin+version+stable => VSCode-darwin-major.minor.patch-stable.zip
+        /// <br/>
+        /// <br/>And a few notes concerning combinations and file naming conventions:
+        /// <see cref="win32"/> and <see cref="darwin"/> <see cref="archive"/> extensions are
+        /// <c>.zip</c>. <see cref="win32"/> filename <see cref="Architecture"/> is <c>ia32</c>.
+        /// <see cref="linux"/> <see cref="x64"/> <see cref="Architecture"/> is <c>amd64</c>.
         /// </summary>
-        /// <remarks>Automating the downloads with help from repeatable links</remarks>
+        /// <see cref="https://github.com/microsoft/vscode/issues/109329">Automating the downloads with help from repeatable links</see>
+        /// <see cref="!:https://update.code.visualstudio.com/latest/win32-x64-user/stable"/>
+        /// <see cref="!:https://update.code.visualstudio.com/latest/win32-x64-user/insider"/>
+        /// <see cref="!:https://update.code.visualstudio.com/major.minor.patch/win32-x64-user/stable"/>
+        /// <see cref="!:https://update.code.visualstudio.com/major.minor.patch-insider/win32-x64-user/insider"/>
         internal const string codeGithubIssueUri = "https://github.com/microsoft/vscode/issues/109329";
 
         private static bool TryDiscoverAssets(out string path)
