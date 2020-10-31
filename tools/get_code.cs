@@ -800,7 +800,8 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
         public bool TryParseArguments(params string[] args)
         {
-            string GetArgument(int index) => args.ElementAt(index).ToLower();
+            string GetArgument(int index) => index >= args.Length
+                ? string.Empty : args.ElementAt(index).ToLower();
 
             // Reset the optional values to nominal defaults.
             this.pause = NoPause.pause;
