@@ -5,8 +5,8 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 
-// https://csharppedia.com/en/tutorial/4264/assemblyinfo-cs-examples
 // https://fake.build/dotnet-assemblyinfo.html
+// https://csharppedia.com/en/tutorial/4264/assemblyinfo-cs-examples
 [assembly: AssemblyVersion("0.2.0.0")]
 
 // TODO: TBD: just about done with this one...
@@ -143,11 +143,6 @@ namespace Code.Downloader
         /// 
         /// </summary>
         x86,
-
-        /// <summary>
-        /// 
-        /// </summary>
-        ios,
 
         /// <summary>
         /// 
@@ -388,7 +383,7 @@ namespace Code.Downloader
         /// <summary>
         /// Gets or Sets whether to Show the downloader Version.
         /// </summary>
-        internal bool Show { get; set; }
+        internal bool show { get; set; }
 
         private System.Version _version;
 
@@ -398,11 +393,11 @@ namespace Code.Downloader
             set => _version = value;
         }
 
-        public CodeVersion selector { get; set; }
+        public CodeVersion selector { get; set; } = CodeVersion.latest;
 
-        public static System.Version macOS { get; } = Version.Parse("10.10");
+        internal static System.Version macOS { get; } = Version.Parse("10.10");
 
-        private static System.Version latestVersion { get; } = Version.Parse("1.50.1");
+        internal static System.Version latestVersion { get; } = Version.Parse("1.50.1");
 
         /// <summary>
         /// Resets the Versions to default state.
@@ -527,21 +522,22 @@ namespace Code.Downloader
 
         private string HelpSum => this._helpSum ?? (this._helpSum = RenderHelpSummary(programFileName));
 
-        private IEnumerable<string> HelpOpts { get; }
-        private IEnumerable<string> TargetOpts { get; }
-        private IEnumerable<string> ArchOpts { get; }
-        private IEnumerable<string> BuildOpts { get; }
-        private IEnumerable<string> AllOpts { get; }
-        private IEnumerable<string> DryOpts { get; }
-        private IEnumerable<string> InsiderOpts { get; }
-        private IEnumerable<string> VersionOpts { get; }
-        private IEnumerable<string> NoPauseOpts { get; }
-        private IEnumerable<string> CodeVersionOpts { get; }
+        private string[] HelpOpts { get; }
+        private string[] TargetOpts { get; }
+        private string[] ArchOpts { get; }
+        private string[] BuildOpts { get; }
+        private string[] AllOpts { get; }
+        private string[] DryOpts { get; }
+        private string[] InsiderOpts { get; }
+        private string[] VersionOpts { get; }
+        private string[] NoPauseOpts { get; }
+        private string[] CodeVersionOpts { get; }
 
-        private IEnumerable<string> TargetVals { get; }
-        private IEnumerable<string> ArchVals { get; }
-        private IEnumerable<string> BuildVals { get; }
-        private IEnumerable<string> DefaultVals { get; }
+        private string[] TargetVals { get; }
+        private string[] ArchVals { get; }
+        private string[] BuildVals { get; }
+        private string[] CodeVersionVals { get; }
+        private string[] DefaultVals { get; }
 
         internal Versions Versions { get; } = new Versions();
 
@@ -555,11 +551,13 @@ namespace Code.Downloader
         {
             this.CurrentAssets = assets;
 
+            const string angleBrackets = "<>";
             string OnRenderValue<T>(T value) => $"{value}";
 
             this.TargetVals = Range(darwin, linux, win32).Select(OnRenderValue).ToArray();
-            this.ArchVals = Range(x64, x86, ios, arm, arm64).Select(OnRenderValue).ToArray();
+            this.ArchVals = Range(x64, x86, arm, arm64).Select(OnRenderValue).ToArray();
             this.BuildVals = Range(user, system, archive, deb, rpm, snap).Select(OnRenderValue).ToArray();
+            this.CodeVersionVals = Range(nameof(CodeVersion.latest), string.Join(nameof(CodeVersion.version).ToUpper(), angleBrackets.ToArray())).ToArray();
             this.DefaultVals = Range<string>().ToArray();
 
             static IEnumerable<string> GetTypeBasedOptions<T>(params int?[] lengths)
@@ -589,18 +587,20 @@ namespace Code.Downloader
                 return opt.Length == 2 ? opt : $"{hyp}{opt}";
             }
 
-            this.HelpOpts = GetTypeBasedOptions<Help>(null).Select(DressOptionPunctuation).ToArray();
-            this.TargetOpts = GetTypeBasedOptions<Target>(null, 1).Select(DressOptionPunctuation).ToArray();
+            int? selectAll = null;
+
+            this.HelpOpts = GetTypeBasedOptions<Help>(selectAll).Select(DressOptionPunctuation).ToArray();
+            this.TargetOpts = GetTypeBasedOptions<Target>(selectAll, 1).Select(DressOptionPunctuation).ToArray();
             this.ArchOpts = GetTypeBasedOptions<Architecture>(4, 1).Select(DressOptionPunctuation).ToArray();
-            this.BuildOpts = GetTypeBasedOptions<Build>(null, 1).Select(DressOptionPunctuation).ToArray();
-            this.AllOpts = GetTypeBasedOptions<All>(null).Select(DressOptionPunctuation).ToArray();
-            this.DryOpts = GetTypeBasedOptions<Dry>(null).Select(DressOptionPunctuation).ToArray();
-            this.InsiderOpts = GetTypeBasedOptions<Insider>(null, 1).Select(DressOptionPunctuation).ToArray();
-            this.VersionOpts = GetTypeBasedOptions<Version>(null, 1).Select(DressOptionPunctuation).ToArray();
-            this.NoPauseOpts = GetTypeBasedOptions<NoPause>(null).Select(DressOptionPunctuation).ToArray();
+            this.BuildOpts = GetTypeBasedOptions<Build>(selectAll, 1).Select(DressOptionPunctuation).ToArray();
+            this.AllOpts = GetTypeBasedOptions<All>(selectAll).Select(DressOptionPunctuation).ToArray();
+            this.DryOpts = GetTypeBasedOptions<Dry>(selectAll).Select(DressOptionPunctuation).ToArray();
+            this.InsiderOpts = GetTypeBasedOptions<Insider>(selectAll, 1).Select(DressOptionPunctuation).ToArray();
+            this.VersionOpts = GetTypeBasedOptions<Version>(selectAll, 1).Select(DressOptionPunctuation).ToArray();
+            this.NoPauseOpts = GetTypeBasedOptions<NoPause>(selectAll).Select(DressOptionPunctuation).ToArray();
 
             // TODO: TBD: there's probably a pattern here we can factor to a method, at least...
-            this.CodeVersionOpts = Range($"{hyp}{CodeVersion.code}{hyp}{CodeVersion.version}"
+            this.CodeVersionOpts = Range($"{hyp}{hyp}{CodeVersion.code}{hyp}{CodeVersion.version}"
                 , $"{hyp}{CodeVersion.code.ToString().First()}{CodeVersion.version.ToString().First()}").ToArray();
         }
 
@@ -683,7 +683,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             , (this.BuildOpts, "--x VALUE, the builds.", this.BuildVals)
             , (this.AllOpts, "--x, get all targets, architectures, and builds", this.DefaultVals)
             , (this.DryOpts, "--x, performs the features in dry run scenarios", this.DefaultVals)
-            , (this.CodeVersionOpts, "--x VALUE, specify the Code version, or latest", Range(nameof(currentVersions.latest), nameof(currentVersions.version).ToUpper()).ToArray())
+            , (this.CodeVersionOpts, "--x VALUE, specify the Code version, or latest", this.CodeVersionVals)
             , (this.InsiderOpts, $"--x, whether to get the {nameof(insider)} or {nameof(stable)}", this.DefaultVals)
             , (this.VersionOpts, "--x, whether to show the downloader version", this.DefaultVals)
         );
@@ -706,6 +706,27 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             ReportNameValuePair(nameof(this.arch), this.arch);
             ReportNameValuePair(nameof(this.build), this.build);
             ReportNameValuePair(nameof(this.insider), this.insider);
+
+            ReportNameValuePair(nameof(this.HelpOpts), string.Join(", ", this.HelpOpts));
+            ReportNameValuePair(nameof(this.TargetOpts), string.Join(", ", this.TargetOpts));
+            ReportNameValuePair(nameof(this.ArchOpts), string.Join(", ", this.ArchOpts));
+            ReportNameValuePair(nameof(this.BuildOpts), string.Join(", ", this.BuildOpts));
+            ReportNameValuePair(nameof(this.AllOpts), string.Join(", ", this.AllOpts));
+            ReportNameValuePair(nameof(this.DryOpts), string.Join(", ", this.DryOpts));
+            ReportNameValuePair(nameof(this.CodeVersionOpts), string.Join(", ", this.CodeVersionOpts));
+            ReportNameValuePair(nameof(this.InsiderOpts), string.Join(", ", this.InsiderOpts));
+            ReportNameValuePair(nameof(this.VersionOpts), string.Join(", ", this.VersionOpts));
+
+            ReportNameValuePair(nameof(this.TargetVals), string.Join(", ", this.TargetVals));
+            ReportNameValuePair(nameof(this.ArchVals), string.Join(", ", this.ArchVals));
+            ReportNameValuePair(nameof(this.BuildVals), string.Join(", ", this.BuildVals));
+            ReportNameValuePair(nameof(this.CodeVersionVals), string.Join(", ", this.CodeVersionVals));
+            ReportNameValuePair(nameof(this.TargetVals), string.Join(", ", this.TargetVals));
+
+            ReportNameValuePair($"{nameof(this.Versions)}.{nameof(Versions.show)}", $"{this.Versions.show}".ToLower());
+            ReportNameValuePair($"{nameof(this.Versions)}.{nameof(Versions.version)}", this.Versions.version);
+            ReportNameValuePair($"{nameof(Versions)}.{nameof(Versions.macOS)}", Versions.macOS);
+            ReportNameValuePair($"{nameof(Versions)}.{nameof(Versions.latestVersion)}", Versions.latestVersion);
         }
 
         public bool TryParseArguments(params string[] args)
@@ -719,7 +740,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             this.target = default;
             this.arch = default;
             this.build = default;
-            this.Insider = default;
+            this.insider = default;
             this.Versions.Reset();
 
             int i;
@@ -732,7 +753,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 {
                     this.help = show;
                     TryShowVersion();
-                    TryPresentHelpOnReturn(currentVersions);
+                    TryPresentHelpOnReturn(this.Versions);
                     break;
                 }
 
@@ -784,7 +805,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
                 if (this.VersionOpts.Contains(arg))
                 {
-                    this.Versions.Show = true;
+                    this.Versions.show = true;
                     return TryShowVersion();
                 }
 
@@ -795,7 +816,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                     {
                         this.Versions.version = v;
                     }
-                    else if (arg.Parse<CodeVersion>() == latest)
+                    else if (arg.ParseEnum<CodeVersion>() == latest)
                     {
                         this.Versions.selector = latest;
                     }
@@ -883,6 +904,8 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 ? $"{latest}"
                 : $"{this.CurrentVersions.version}"
         );
+
+#if false // Temporarily disabled while working out the front of the process
 
         /// <summary>
         ///
@@ -1080,6 +1103,9 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 ProcessMacOS(t ?? string.Empty);
             }
         }
+
+#endif // Temporarily disabled while working out the front of the process
+
     }
 
     public class DownloadDescriptor
@@ -1211,7 +1237,8 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 return;
             }
 
-            CurrentProcessor.ProcessConfiguration();
+            // TODO: TBD: commented out while workout out changes to the front of the process.
+            //CurrentProcessor.ProcessConfiguration();
         }
 
         /// <summary>
