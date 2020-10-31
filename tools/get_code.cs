@@ -1569,9 +1569,7 @@ namespace System
         public static T? ParseEnum<T>(this string s)
             where T : struct
         {
-            var defaultValue = default(T);
-
-            var values = defaultValue.GetEnumValues().ToArray();
+            var values = default(T).GetEnumValues().ToArray();
 
             foreach (T value in values)
             {
@@ -1581,7 +1579,7 @@ namespace System
                 }
             }
 
-            return defaultValue;
+            return default(T?);
         }
     }
 
