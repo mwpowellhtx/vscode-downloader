@@ -942,6 +942,12 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             ReportNameValuePair($"{nameof(Versions)}.{nameof(Versions.latestVersion)}", Versions.latestVersion);
         }
 
+        /// <summary>
+        /// Gets the DownloadSpecs for use throughout the tool.
+        /// </summary>
+        internal IEnumerable<(Target t, Build b, Architecture a)> DownloadSpecs { get; private set; }
+             = Range<(Target t, Build b, Architecture a)>().ToArray();
+
         public bool TryParseArguments(params string[] args)
         {
             string GetArgument(int index) => index >= args.Length
@@ -1042,10 +1048,19 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
             if (this.IsDry)
             {
-                this.Writer.WriteLine($"{nameof(dry)}: {nameof(args)}.{nameof(args.Length)}: {args.Length}, {nameof(i)}: {i}");
+                const string squareBrackets = "[]";
+                const char comma = ',';
+                this.Writer.WriteLine($"{nameof(Dry)}: {nameof(args)}: {string.Join(string.Join($"{comma} ", args), squareBrackets.ToArray())}, {nameof(i)}: {i}");
             }
 
-            return i == args.Length && this.CurrentAssets.AreDiscovered(this.Writer);
+            /* Arguments are considered parsed successfully when:
+             * 1. Arguments processed successfully
+             * 2. Download specifications properly aligned
+             * 3. Assets properly discovered
+             */
+            return i == args.Length
+                && this.DownloadSpecs.Any()
+                && this.CurrentAssets.AreDiscovered(this.Writer);
         }
     }
 
