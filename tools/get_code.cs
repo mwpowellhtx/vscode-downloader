@@ -264,68 +264,68 @@ namespace Code.Downloader
         gz,
     }
 
-    /// <summary>
-    ///
-    /// </summary>
-    public static class Bits2
-    {
-        /// <summary>
-        ///
-        /// </summary>
-        internal const string Windows = nameof(Windows);
-
-        /// <summary>
-        ///
-        /// </summary>
-        internal const string Linux = nameof(Windows);
-
-        /// <summary>
-        ///
-        /// </summary>
-        internal const string macOS = nameof(macOS);
-
-        /// <summary>
-        ///
-        /// </summary>
-        internal const string x64 = nameof(x64);
-
-        /// <summary>
-        ///
-        /// </summary>
-        internal const string x86 = nameof(x86);
-
-        /// <summary>
-        ///
-        /// </summary>
-        internal const string arm = nameof(arm);
-
-        /// <summary>
-        ///
-        /// </summary>
-        internal const string arm64 = nameof(arm64);
-
-        /// <summary>
-        ///
-        /// </summary>
-        internal const string zip = nameof(zip);
-
-        /// <summary>
-        ///
-        /// </summary>
-        internal const string tar = nameof(tar);
-
-        /// <summary>
-        ///
-        /// </summary>
-        internal const string gz = nameof(gz);
-
-        /// <summary>
-        ///
-        /// </summary>
-        /// <see cref="tar"/>
-        /// <see cref="gz"/>
-        internal static string tarball { get; } = string.Join(".", tar, gz);
-    }
+    ///// <summary>
+    /////
+    ///// </summary>
+    //public static class Bits2
+    //{
+    //    /// <summary>
+    //    ///
+    //    /// </summary>
+    //    internal const string Windows = nameof(Windows);
+    //
+    //    /// <summary>
+    //    ///
+    //    /// </summary>
+    //    internal const string Linux = nameof(Windows);
+    //
+    //    /// <summary>
+    //    ///
+    //    /// </summary>
+    //    internal const string macOS = nameof(macOS);
+    //
+    //    /// <summary>
+    //    ///
+    //    /// </summary>
+    //    internal const string x64 = nameof(x64);
+    //
+    //    /// <summary>
+    //    ///
+    //    /// </summary>
+    //    internal const string x86 = nameof(x86);
+    //
+    //    /// <summary>
+    //    ///
+    //    /// </summary>
+    //    internal const string arm = nameof(arm);
+    //
+    //    /// <summary>
+    //    ///
+    //    /// </summary>
+    //    internal const string arm64 = nameof(arm64);
+    //
+    //    /// <summary>
+    //    ///
+    //    /// </summary>
+    //    internal const string zip = nameof(zip);
+    //
+    //    /// <summary>
+    //    ///
+    //    /// </summary>
+    //    internal const string tar = nameof(tar);
+    //
+    //    /// <summary>
+    //    ///
+    //    /// </summary>
+    //    internal const string gz = nameof(gz);
+    //
+    //    /// <summary>
+    //    ///
+    //    /// </summary>
+    //    /// <see cref="tar"/>
+    //    /// <see cref="gz"/>
+    //    internal static string tarball { get; } = string.Join(".", tar, gz);
+    //}
 
     internal class AssetManager
     {
@@ -455,16 +455,17 @@ namespace Code.Downloader
         {
             path = null;
 
-            using (var process = new Process())
+            var startInfo = new ProcessStartInfo
             {
-                process.StartInfo.UseShellExecute = false;
-                process.StartInfo.FileName = AssetManager.where;
-                process.StartInfo.Arguments = AssetManager.wget;
-                process.StartInfo.CreateNoWindow = true;
-                process.StartInfo.RedirectStandardOutput = true;
+                UseShellExecute = false,
+                FileName = AssetManager.where,
+                Arguments = AssetManager.wget,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true
+            };
 
-                process.Start();
-
+            using (var process = Process.Start(startInfo))
+            {
                 // TODO: TBD: as far as we know, we do not own the StandardOutput instance in order to dispose of it...
                 var process_StandardOutput = process.StandardOutput;
 
