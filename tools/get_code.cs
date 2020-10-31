@@ -171,10 +171,103 @@ namespace Code.Downloader
         pause,
     }
 
+    // win32+system+x86+version => VSCodeSetup-ia32-major.minor.patch.exe
+    // win32+user+x86+version => VSCodeUserSetup-ia32-major.minor.patch.exe
+    // win32+archive+x86+version => VSCode-win32-ia32-major.minor.patch.zip
+    //
+    // win32+system+x64+version => VSCodeSetup-x64-major.minor.patch.exe
+    // win32+user+x64+version => VSCodeUserSetup-x64-major.minor.patch.exe
+    // win32+archive+x64+version => VSCode-win32-x64-major.minor.patch.zip
+    //
+    // win32+system+arm+version => VSCodeSetup-arm64-major.minor.patch.exe
+    // win32+user+arm+version => VSCodeUserSetup-arm64-major.minor.patch.exe
+    // win32+archive+arm+version => VSCode-win32-arm64-major.minor.patch.zip
+    //
+    // win32+system+arm64+version => VSCodeSetup-arm64-major.minor.patch.exe
+    // win32+user+arm64+version => VSCodeUserSetup-arm64-major.minor.patch.exe
+    // win32+archive+arm64+version => VSCode-win32-arm64-major.minor.patch.zip
+    //
+    // win32+system+arm64+version => VSCodeSetup-arm64-major.minor.patch.exe
+    // win32+user+arm64+version => VSCodeUserSetup-arm64-major.minor.patch.exe
+    // win32+archive+arm64+version => VSCode-win32-arm64-major.minor.patch.zip
+    //
+    // linux+deb+x64+version => code_major.minor.patch-amd64.deb
+    // linux+rpm+x64+version => code_major.minor.patch-amd64.rpm
+    // linux+archive+x64+version => code_major.minor.patch-amd64.tar.gz
+    //
+    // darwin+version+stable => VSCode-darwin-major.minor.patch-stable.zip
+    //
+    // Windows User Installer:
+    // x64: VSCodeUserSetup-x64-1.50.1.exe
+    // x86: VSCodeUserSetup-ia32-1.50.1.exe
+    // ARM: VSCodeUserSetup-arm64-1.50.1.exe
+    //
+    // Windows System Installer:
+    // x64: VSCodeSetup-x64-1.50.1.exe
+    // x86: VSCodeSetup-ia32-1.50.1.exe
+    // ARM: VSCodeSetup-arm64-1.50.1.exe
+    //
+    // Windows .zip archive:
+    // x64: VSCode-win32-x64-1.50.1.zip
+    // x86: VSCode-win32-ia32-1.50.1.zip
+    // ARM: VSCode-win32-arm64-1.50.1.zip
+    //
+    // Linux .deb:
+    // x64: code_1.50.1-1602600906_amd64.deb
+    // ARM: code_1.50.1-1602600660_armhf.deb
+    // ARM64: code_1.50.1-1602600638_arm64.deb
+    //
+    // Linux .rpm:
+    // x64: code-1.50.1-1602601064.el7.x86_64.rpm
+    // ARM: code-1.50.1-1602600721.el7.armv7hl.rpm
+    // ARM64: code-1.50.1-1602600714.el7.aarch64.rpm
+    //
+    // Linux .tar.gz tarball archives:
+    // x64: code-stable-x64-1602601238.tar.gz
+    // ARM: code-stable-armhf-1602600874.tar.gz
+    // ARM64: code-stable-arm64-1602601132.tar.gz
+    //
+    // Linux snap:
+    // snap: linux-snap-x64
+
+    /// <summary>
+    /// Enumerated elements contributing to the file naming conventions. These
+    /// should be mapped or at least strategically arranged accordingly.
+    /// </summary>
+    public enum Element
+    {
+        Windows,
+        Linux,
+        macOS,
+        code,
+        VSCode,
+        User,
+        Setup,
+        darwin,
+        win32,
+        insider,
+        stable,
+        ia32,
+        x64,
+        amd64, // For Linux DEB x64
+        arm64, // For Linux ARM64 DEB and archive
+        el7, // For Linux RPM...
+        x86_64, // For Linux RPM (x86)/x64
+        armhf, // For Linux ARM DEB and archive
+        armv7hl, // For Linux RPM ARM
+        aarch64, // For Linux RPM ARM64
+        exe,
+        zip,
+        deb,
+        rpm,
+        tar,
+        gz,
+    }
+
     /// <summary>
     ///
     /// </summary>
-    public static class Bits
+    public static class Bits2
     {
         /// <summary>
         ///
@@ -276,6 +369,11 @@ namespace Code.Downloader
         internal const string codeDownloadUri = "https://code.visualstudio.com/Download";
 
         /// <summary>
+        /// &quot;https://snapcraft.io/code&quot;
+        /// </summary>
+        internal const string snapCraftDotIoCode = "https://snapcraft.io/code";
+
+        /// <summary>
         /// The following are the valid combinations. <see cref="darwin"/> supports only
         /// <see cref="archive"/> <see cref="Architecture"/> builds. <see cref="linux"/> without
         /// the build is considered a
@@ -286,6 +384,13 @@ namespace Code.Downloader
         /// <see cref="Architecture"/> or <see cref="Build"/> are considered <see cref="x86"/>
         /// or <see cref="system"/>, respectively. Lastly, versions are always specified in terms
         /// of <c>major.minor.patch</c>.
+        /// <br/>
+        /// <br/><see cref="snap"/> is a unique <see cref="linux"/> corner case. We consider it
+        /// one of the <see cref="Build"/> options and it occurs only for the <see cref="x64"/>
+        /// <see cref="Architecture"/>, but we consider that <c>null</c>, as well, for internal
+        /// purposes. The <em>Download</em> link redirects to the
+        /// <see cref="!:https://snapcraft.io/code"/> store front, however, we are aware of the
+        /// actual download Uri, so we utilize that reference directly.
         /// <br/>
         /// <br/>darwin
         /// <br/>linux-arm64
@@ -342,6 +447,8 @@ namespace Code.Downloader
         /// <see cref="!:https://update.code.visualstudio.com/latest/win32-x64-user/insider"/>
         /// <see cref="!:https://update.code.visualstudio.com/major.minor.patch/win32-x64-user/stable"/>
         /// <see cref="!:https://update.code.visualstudio.com/major.minor.patch-insider/win32-x64-user/insider"/>
+        /// <see cref="!:https://update.code.visualstudio.com/major.minor.patch/linux-snap-x64/stable"/>
+        /// <see cref="snapCraftDotIoCode"/>
         internal const string codeGithubIssueUri = "https://github.com/microsoft/vscode/issues/109329";
 
         private static bool TryDiscoverAssets(out string path)
@@ -659,19 +766,22 @@ namespace Code.Downloader
                 {
                     yield return x86;
                     yield return x64;
+                    // While we allow for ARM for convenience, download maps to ARM64.
+                    yield return arm;
                     yield return arm64;
                 }
-
-                Architecture? nullArch = null;
 
                 if (pair.t == linux)
                 {
                     if (pair.b == snap)
                     {
-                        yield return nullArch;
+                        // A corner case, we do not care, but when mapping to paths, we want the x64 arch.
+                        yield return null;
                     }
                     else
                     {
+                        // While we allow for x86 and x64 for convenience, download maps to amd64.
+                        yield return x86;
                         yield return x64;
                         yield return arm;
                         yield return arm64;
@@ -680,7 +790,7 @@ namespace Code.Downloader
 
                 if (pair.t == darwin)
                 {
-                    yield return nullArch;
+                    yield return null;
                 }
             }
 
