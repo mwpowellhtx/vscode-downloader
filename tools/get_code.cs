@@ -322,7 +322,7 @@ namespace Code.Downloader
         /// &quot;https://github.com/microsoft/vscode/issues/109329&quot;
         /// </summary>
         /// <remarks>Automating the downloads with help from repeatable links</remarks>
-        public const string codeGithubIssueUri = "https://github.com/microsoft/vscode/issues/109329";
+        internal const string codeGithubIssueUri = "https://github.com/microsoft/vscode/issues/109329";
 
         private static bool TryDiscoverAssets(out string path)
         {
@@ -541,6 +541,18 @@ namespace Code.Downloader
 
         internal Versions Versions { get; } = new Versions();
 
+        /// <summary>
+        /// Gets the valid combinations of <see cref="Target"/> and corresponding
+        /// <see cref="Build"/>.
+        /// </summary>
+        private IDictionary<Target, Build[]> BuildsForTarget { get; }
+
+        /// <summary>
+        /// Gets the valid combinations of <see cref="Architecture"/> corresponding
+        /// with the <see cref="Target"/> and <see cref="Build"/> pairs.
+        /// </summary>
+        private IDictionary<(Target, Build), Architecture?[]> ArchesForTargetBuild { get; }
+
         internal OptionsParser(AssetManager assets)
             : this(assets, null)
         {
@@ -602,6 +614,63 @@ namespace Code.Downloader
             // TODO: TBD: there's probably a pattern here we can factor to a method, at least...
             this.CodeVersionOpts = Range($"{hyp}{hyp}{CodeVersion.code}{hyp}{CodeVersion.version}"
                 , $"{hyp}{CodeVersion.code.ToString().First()}{CodeVersion.version.ToString().First()}").ToArray();
+
+            IEnumerable<Build> OnGetBuildsForTarget(Target key)
+            {
+                if (key == win32)
+                {
+                    yield return user;
+                    yield return system;
+                }
+
+                if (key == linux)
+                {
+                    yield return deb;
+                    yield return rpm;
+                    yield return snap;
+                }
+
+                yield return archive;
+            }
+
+            IEnumerable<Architecture?> OnGetArchesForTargetBuild((Target t, Build b) pair)
+            {
+                if (pair.t == win32)
+                {
+                    yield return x86;
+                    yield return x64;
+                    yield return arm64;
+                }
+
+                Architecture? nullArch = null;
+
+                if (pair.t == linux)
+                {
+                    if (pair.b == snap)
+                    {
+                        yield return nullArch;
+                    }
+                    else
+                    {
+                        yield return x64;
+                        yield return arm;
+                        yield return arm64;
+                    }
+                }
+
+                if (pair.t == darwin)
+                {
+                    yield return nullArch;
+                }
+            }
+
+            this.BuildsForTarget = Range(win32, linux, darwin)
+                .Select(key => (key, Values: OnGetBuildsForTarget(key).ToArray()))
+                .ToDictionary(x => x.key, x => x.Values);
+
+            this.ArchesForTargetBuild = this.BuildsForTarget
+                .SelectMany(pair => pair.Value.Select(b => (t: pair.Key, b)))
+                .ToDictionary(x => x, x => OnGetArchesForTargetBuild(x).ToArray());
         }
 
         private string RenderHelpSummary(string fileName)
