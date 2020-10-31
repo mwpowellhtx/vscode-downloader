@@ -757,6 +757,7 @@ namespace Code.Downloader
                     yield return snap;
                 }
 
+                // This is correct, all targets support archive in one form or another.
                 yield return archive;
             }
 
