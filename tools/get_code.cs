@@ -924,9 +924,18 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 return;
             }
 
-            const string squareBrackets = "[]";
+            const char tick = '\'';
             const char comma = ',';
-            this.Writer.WriteLine($"{nameof(Dry)}: {nameof(args)}: {string.Join(string.Join($"{comma} ", args), squareBrackets.ToArray())}, {nameof(i)}: {i}");
+
+            string Q(string s) => $"{tick}{s}{tick}";
+
+            string A<T>(params T[] values)
+            {
+                const string squareBrackets = "[]";
+                return string.Join(string.Join($"{comma} ", values.Select(x => $"{x}").Select(Q)), squareBrackets.ToArray());
+            }
+
+            this.Writer.WriteLine($"{nameof(Dry)}: {nameof(args)}: {A(args)}, {nameof(i)}: {i}");
 
             void ReportNameValuePair(string name, object value) => this.Writer.WriteLine(
                 $"{RenderNameObjectPairs((name, value)).Single()}"
@@ -940,21 +949,20 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             ReportNameValuePair(nameof(this.build), this.build);
             ReportNameValuePair(nameof(this.insider), this.insider);
 
-            ReportNameValuePair(nameof(this.HelpOpts), string.Join(", ", this.HelpOpts));
-            ReportNameValuePair(nameof(this.TargetOpts), string.Join(", ", this.TargetOpts));
-            ReportNameValuePair(nameof(this.ArchOpts), string.Join(", ", this.ArchOpts));
-            ReportNameValuePair(nameof(this.BuildOpts), string.Join(", ", this.BuildOpts));
-            ReportNameValuePair(nameof(this.AllOpts), string.Join(", ", this.AllOpts));
-            ReportNameValuePair(nameof(this.DryOpts), string.Join(", ", this.DryOpts));
-            ReportNameValuePair(nameof(this.CodeVersionOpts), string.Join(", ", this.CodeVersionOpts));
-            ReportNameValuePair(nameof(this.InsiderOpts), string.Join(", ", this.InsiderOpts));
-            ReportNameValuePair(nameof(this.VersionOpts), string.Join(", ", this.VersionOpts));
+            ReportNameValuePair(nameof(this.HelpOpts), A(this.HelpOpts));
+            ReportNameValuePair(nameof(this.TargetOpts), A(this.TargetOpts));
+            ReportNameValuePair(nameof(this.ArchOpts), A(this.ArchOpts));
+            ReportNameValuePair(nameof(this.BuildOpts), A(this.BuildOpts));
+            ReportNameValuePair(nameof(this.AllOpts), A(this.AllOpts));
+            ReportNameValuePair(nameof(this.DryOpts), A(this.DryOpts));
+            ReportNameValuePair(nameof(this.CodeVersionOpts), A(this.CodeVersionOpts));
+            ReportNameValuePair(nameof(this.InsiderOpts), A(this.InsiderOpts));
+            ReportNameValuePair(nameof(this.VersionOpts), A(this.VersionOpts));
 
-            ReportNameValuePair(nameof(this.TargetVals), string.Join(", ", this.TargetVals));
-            ReportNameValuePair(nameof(this.ArchVals), string.Join(", ", this.ArchVals));
-            ReportNameValuePair(nameof(this.BuildVals), string.Join(", ", this.BuildVals));
-            ReportNameValuePair(nameof(this.CodeVersionVals), string.Join(", ", this.CodeVersionVals));
-            ReportNameValuePair(nameof(this.TargetVals), string.Join(", ", this.TargetVals));
+            ReportNameValuePair(nameof(this.TargetVals), A(this.TargetVals));
+            ReportNameValuePair(nameof(this.ArchVals), A(this.ArchVals));
+            ReportNameValuePair(nameof(this.BuildVals), A(this.BuildVals));
+            ReportNameValuePair(nameof(this.CodeVersionVals), A(this.CodeVersionVals));
 
             ReportNameValuePair($"{nameof(this.Versions)}.{nameof(Versions.show)}", $"{this.Versions.show}".ToLower());
             ReportNameValuePair($"{nameof(this.Versions)}.{nameof(Versions.version)}", this.Versions.version);
@@ -976,14 +984,22 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             }
 
             // Do a little screening of the command line arguments ensuring optimum alignment.
-            if (t == linux && a == null && b == snap)
+            if (t == linux && (a == x86 || (a == null && b == snap)))
             {
+                // TODO: TBD: for the moment it includes snap... but we do not think it should...
                 a = x64;
             }
-            else if (t == linux && a == x86 && b.HasValue && Range(deb, rpm, archive).Contains(b.Value))
-            {
-                a = x64;
-            }
+
+            //// Do a little screening of the command line arguments ensuring optimum alignment.
+            //if (t == linux && a == null && b == snap)
+            //{
+            //    a = x64;
+            //}
+            //else if (t == linux && a == x86 && b.HasValue && Range(deb, rpm, archive).Contains(b.Value))
+            //{
+            //    // TODO: TBD: for the moment it includes snap... but we do not think it should...
+            //    a = x64;
+            //}
 
             if (t == darwin && b != archive && a != null)
             {
@@ -991,11 +1007,15 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 a = null;
             }
 
-            return this.AllDownloadSpecs.Where(x =>
-                (t == null || t == x.t)
-                    && (b == null || b == x.b)
-                    && (a == null || a == x.a || (t == null && a == x86 && x.a == x64))
-            );
+            var q = (t, b, a);
+
+            bool OnSelectDownloadSpecs((Target t, Build b, Architecture? a) x) =>
+                (q.t == null || q.t == x.t)
+                    && (q.b == null || q.b == x.b)
+                    && (q.a == null || q.a == x.a)
+                ;
+
+            return this.AllDownloadSpecs.Where(OnSelectDownloadSpecs).ToArray();
         }
 
         private IEnumerable<(Target t, Build b, Architecture? a)> _selectedDownloadSpecs;
