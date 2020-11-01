@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -781,8 +782,7 @@ namespace Code.Downloader
                 {
                     yield return x86;
                     yield return x64;
-                    // While we allow for ARM for convenience, download maps to ARM64.
-                    yield return arm;
+                    // Screen for arm -> arm64 upon parsing.
                     yield return arm64;
                 }
 
@@ -790,14 +790,12 @@ namespace Code.Downloader
                 {
                     if (pair.b == snap)
                     {
-                        yield return null;
-                        // Null is allowable, we will default that to x64 for path composition purposes.
+                        // Screen for null -> x64 upon parsing.
                         yield return x64;
                     }
                     else
                     {
-                        // While we allow for x86 and x64 for convenience, download maps to amd64.
-                        yield return x86;
+                        // Screen for x86 -> x64 upon parsing.
                         yield return x64;
                         yield return arm;
                         yield return arm64;
@@ -972,8 +970,17 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
         private IEnumerable<(Target t, Build b, Architecture? a)> GetSelectedDownloadSpecs(Target? t, Build? b, Architecture? a)
         {
+            if (t == win32 && a == arm)
+            {
+                a = arm64;
+            }
+
             // Do a little screening of the command line arguments ensuring optimum alignment.
-            if (t == linux && b == snap && a == null)
+            if (t == linux && a == null && b == snap)
+            {
+                a = x64;
+            }
+            else if (t == linux && a == x86 && b.HasValue && Range(deb, rpm, archive).Contains(b.Value))
             {
                 a = x64;
             }
@@ -986,8 +993,8 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
             return this.AllDownloadSpecs.Where(x =>
                 (t == null || t == x.t)
-                && (b == null || b == x.b)
-                && (a == null || a == x.a)
+                    && (b == null || b == x.b)
+                    && (a == null || a == x.a || (t == null && a == x86 && x.a == x64))
             );
         }
 
@@ -1195,6 +1202,35 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 : $"{this.CurrentVersions.version}"
         );
 
+        private void OnProcessDownloadSpec((Target t, Build b, Architecture? a) spec)
+        {
+            var op = this.CurrentOptions;
+            var (t, b, a) = spec;
+
+            if (op.IsDry)
+            {
+                const char comma = ',';
+                var rendered = RenderNameObjectPairs((nameof(t), (object)t), (nameof(b), (object)b), (nameof(a), (object)a));
+                this.Writer.WriteLine($"{nameof(Dry)}: {nameof(OnProcessDownloadSpec)}({string.Join($"{comma} ", rendered)})");
+                return;
+            }
+        }
+
+        public void ProcessDownloadSpecs()
+        {
+            var op = this.CurrentOptions;
+
+            if (op.IsDry)
+            {
+                this.Writer.WriteLine($"{nameof(Dry)}: {nameof(ProcessDownloadSpecs)}(), {nameof(op)}.{nameof(op.SelectedDownloadSpecs)}.{nameof(IList.Count)}: {op.SelectedDownloadSpecs.Count()}");
+            }
+
+            foreach (var spec in op.SelectedDownloadSpecs)
+            {
+                this.OnProcessDownloadSpec(spec);
+            }
+        }
+
 #if false // Temporarily disabled while working out the front of the process
 
         /// <summary>
@@ -1210,7 +1246,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
             if (op.IsDry)
             {
-                this.Writer.WriteLine($"{nameof(Dry)}: {nameof(ProcessSingle)}({nameof(t)}: '{RenderObjectOrNull(t)}', {nameof(b)}: {RenderObjectOrNull(b)}, {nameof(a)}: {RenderObjectOrNull(a)})");
+                //this.Writer.WriteLine($"{nameof(Dry)}: {nameof(ProcessSingle)}({RenderNameObjectPairs(nameof(t), t)}, {RenderNameObjectPairs(nameof(b), b), {RenderNameObjectPairs(nameof(a), a)}})");
             }
 
             b = b ?? string.Empty;
@@ -1499,9 +1535,11 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
         internal static IEnumerable<string> RenderNameObjectPairs(params (string name, object value)[] pairs)
         {
+            const char colon = ':';
+
             foreach (var (name, value) in pairs)
             {
-                yield return string.Join(": ", name, RenderObjectOrNull(value));
+                yield return string.Join($"{colon} ", name, RenderObjectOrNull(value));
             }
         }
 
@@ -1524,11 +1562,11 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
             if (!op.TryParseArguments(args))
             {
+                Console.WriteLine("here...");
                 return;
             }
 
-            // TODO: TBD: commented out while workout out changes to the front of the process.
-            //CurrentProcessor.ProcessConfiguration();
+            CurrentProcessor.ProcessDownloadSpecs();
         }
 
         /// <summary>
