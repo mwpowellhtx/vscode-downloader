@@ -311,6 +311,7 @@ namespace Code.Downloader
         win32,
         insider,
         stable,
+        snap,
         ia32,
         x86,
         x64,
@@ -439,6 +440,9 @@ namespace Code.Downloader
         /// <br/>linux+deb+x64+version => code_major.minor.patch-amd64.deb
         /// <br/>linux+rpm+x64+version => code_major.minor.patch-amd64.rpm
         /// <br/>linux+archive+x64+version => code_major.minor.patch-amd64.tar.gz
+        /// <br/>
+        /// <br/>linux+snap => code-stable-major.minor.patch.snap
+        /// <br/>linux+archive+snap => code-stable-major.minor.patch.snap
         /// <br/>
         /// <br/>darwin+version+stable => VSCode-darwin-major.minor.patch-stable.zip
         /// <br/>
@@ -673,6 +677,8 @@ namespace Code.Downloader
 
         private Build? build { get; set; }
 
+        internal (Target? t, Build? b, Architecture? a) Filter => (t: this.target, b: this.build, a: this.arch);
+
         internal bool HasTarget => this.target != null;
 
         internal bool HasArch => this.arch != null;
@@ -706,17 +712,17 @@ namespace Code.Downloader
 
         internal Versions Versions { get; } = new Versions();
 
-        /// <summary>
-        /// Gets the valid combinations of <see cref="Target"/> and corresponding
-        /// <see cref="Build"/>.
-        /// </summary>
-        private IDictionary<Target, Build[]> BuildsForTarget { get; }
+        ///// <summary>
+        ///// Gets the valid combinations of <see cref="Target"/> and corresponding
+        ///// <see cref="Build"/>.
+        ///// </summary>
+        //private IDictionary<Target, Build[]> BuildsForTarget { get; }
 
-        /// <summary>
-        /// Gets the valid combinations of <see cref="Architecture"/> corresponding
-        /// with the <see cref="Target"/> and <see cref="Build"/> pairs.
-        /// </summary>
-        private IDictionary<(Target, Build), Architecture?[]> ArchesForTargetBuild { get; }
+        ///// <summary>
+        ///// Gets the valid combinations of <see cref="Architecture"/> corresponding
+        ///// with the <see cref="Target"/> and <see cref="Build"/> pairs.
+        ///// </summary>
+        //private IDictionary<(Target, Build), Architecture?[]> ArchesForTargetBuild { get; }
 
         internal OptionsParser(AssetManager assets)
             : this(assets, null)
@@ -777,92 +783,92 @@ namespace Code.Downloader
             this.CodeVersionOpts = Range($"{hyp}{hyp}{CodeVersion.code}{hyp}{CodeVersion.version}"
                 , $"{hyp}{CodeVersion.code.ToString().First()}{CodeVersion.version.ToString().First()}").ToArray();
 
-            /// <summary>
-            /// Returns the valid combinations corresponding to the <see cref="Target"/>
-            /// <paramref name="key"/>. This is our way of vetting the valid from invalid
-            /// permutations for quality control purposes. As long as the combination is
-            /// valid we let it pass. But when it is determined to be invalid, then we may
-            /// report usage.
-            /// </summary>
-            IEnumerable<Build> OnGetBuildsForTarget(Target key)
-            {
-                if (key == win32)
-                {
-                    yield return user;
-                    yield return system;
-                }
+            ///// <summary>
+            ///// Returns the valid combinations corresponding to the <see cref="Target"/>
+            ///// <paramref name="key"/>. This is our way of vetting the valid from invalid
+            ///// permutations for quality control purposes. As long as the combination is
+            ///// valid we let it pass. But when it is determined to be invalid, then we may
+            ///// report usage.
+            ///// </summary>
+            //IEnumerable<Build> OnGetBuildsForTarget(Target key)
+            //{
+            //    if (key == win32)
+            //    {
+            //        yield return user;
+            //        yield return system;
+            //    }
+            //
+            //    if (key == linux)
+            //    {
+            //        yield return deb;
+            //        yield return rpm;
+            //        yield return snap;
+            //    }
+            //
+            //    // This is correct, all targets support archive in one form or another.
+            //    yield return archive;
+            //}
 
-                if (key == linux)
-                {
-                    yield return deb;
-                    yield return rpm;
-                    yield return snap;
-                }
+            ///// <summary>
+            ///// Returns the valid combinations corresponding to the <see cref="Target"/>
+            ///// <see cref="Build"/> <paramref name="pair"/> combinations. Also ditto further
+            ///// <see cref=""/> remarks.
+            ///// </summary>
+            //IEnumerable<Architecture?> OnGetArchesForTargetBuild((Target t, Build b) pair)
+            //{
+            //    if (pair.t == win32)
+            //    {
+            //        yield return x86;
+            //        yield return x64;
+            //        // Screen for arm -> arm64 upon parsing.
+            //        yield return arm64;
+            //    }
+            //
+            //    if (pair.t == linux)
+            //    {
+            //        if (pair.b == snap)
+            //        {
+            //            // Screen for null -> x64 upon parsing.
+            //            yield return x64;
+            //        }
+            //        else
+            //        {
+            //            // Screen for x86 -> x64 upon parsing.
+            //            yield return x64;
+            //            yield return arm;
+            //            yield return arm64;
+            //        }
+            //    }
+            //
+            //    if (pair.t == darwin)
+            //    {
+            //        yield return null;
+            //    }
+            //}
 
-                // This is correct, all targets support archive in one form or another.
-                yield return archive;
-            }
+            //IEnumerable<(Target t, Build b, Architecture? a)> GetAllDownloadSpecs()
+            //{
+            //    foreach (Target t in win32.GetEnumValues())
+            //    {
+            //        foreach (Build b in this.BuildsForTarget[t])
+            //        {
+            //            foreach (Architecture? a in this.ArchesForTargetBuild[(t, b)])
+            //            {
+            //                yield return (t, b, a);
+            //            }
+            //        }
+            //    }
+            //}
 
-            /// <summary>
-            /// Returns the valid combinations corresponding to the <see cref="Target"/>
-            /// <see cref="Build"/> <paramref name="pair"/> combinations. Also ditto further
-            /// <see cref=""/> remarks.
-            /// </summary>
-            IEnumerable<Architecture?> OnGetArchesForTargetBuild((Target t, Build b) pair)
-            {
-                if (pair.t == win32)
-                {
-                    yield return x86;
-                    yield return x64;
-                    // Screen for arm -> arm64 upon parsing.
-                    yield return arm64;
-                }
+            //this.BuildsForTarget = Range(win32, linux, darwin)
+            //    .Select(key => (key, Values: OnGetBuildsForTarget(key).ToArray()))
+            //    .ToDictionary(x => x.key, x => x.Values);
 
-                if (pair.t == linux)
-                {
-                    if (pair.b == snap)
-                    {
-                        // Screen for null -> x64 upon parsing.
-                        yield return x64;
-                    }
-                    else
-                    {
-                        // Screen for x86 -> x64 upon parsing.
-                        yield return x64;
-                        yield return arm;
-                        yield return arm64;
-                    }
-                }
+            //this.ArchesForTargetBuild = this.BuildsForTarget
+            //    .SelectMany(pair => pair.Value.Select(b => (t: pair.Key, b)))
+            //    .ToDictionary(x => x, x => OnGetArchesForTargetBuild(x).ToArray());
 
-                if (pair.t == darwin)
-                {
-                    yield return null;
-                }
-            }
-
-            IEnumerable<(Target t, Build b, Architecture? a)> GetAllDownloadSpecs()
-            {
-                foreach (Target t in win32.GetEnumValues())
-                {
-                    foreach (Build b in this.BuildsForTarget[t])
-                    {
-                        foreach (Architecture? a in this.ArchesForTargetBuild[(t, b)])
-                        {
-                            yield return (t, b, a);
-                        }
-                    }
-                }
-            }
-
-            this.BuildsForTarget = Range(win32, linux, darwin)
-                .Select(key => (key, Values: OnGetBuildsForTarget(key).ToArray()))
-                .ToDictionary(x => x.key, x => x.Values);
-
-            this.ArchesForTargetBuild = this.BuildsForTarget
-                .SelectMany(pair => pair.Value.Select(b => (t: pair.Key, b)))
-                .ToDictionary(x => x, x => OnGetArchesForTargetBuild(x).ToArray());
-
-            this.AllDownloadSpecs = GetAllDownloadSpecs().ToArray();
+            //this.AllDownloadSpecs = GetAllDownloadSpecs().ToArray();
         }
 
         private string RenderHelpSummary(string fileName)
@@ -996,64 +1002,20 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             ReportNameValuePair($"{nameof(Versions)}.{nameof(Versions.latestVersion)}", Versions.latestVersion);
         }
 
-        /// <summary>
-        /// We will start from the valid set of download specifications. We will select subsets
-        /// of these depending on the command line arguments that we are given.
-        /// </summary>
-        private IEnumerable<(Target t, Build b, Architecture? a)> AllDownloadSpecs { get; }
+        ///// <summary>
+        ///// We will start from the valid set of download specifications. We will select subsets
+        ///// of these depending on the command line arguments that we are given.
+        ///// </summary>
+        //private IEnumerable<(Target t, Build b, Architecture? a)> AllDownloadSpecs { get; }
 
-        private IEnumerable<(Target t, Build b, Architecture? a)> GetSelectedDownloadSpecs(Target? t, Build? b, Architecture? a)
+        internal void OnShowHelp() => OnShowHelp(show);
+
+        private void OnShowHelp(Help value)
         {
-            if (t == win32 && a == arm)
-            {
-                a = arm64;
-            }
-
-            // Do a little screening of the command line arguments ensuring optimum alignment.
-            if (t == linux && (a == x86 || (a == null && b == snap)))
-            {
-                // TODO: TBD: for the moment it includes snap... but we do not think it should...
-                a = x64;
-            }
-
-            //// Do a little screening of the command line arguments ensuring optimum alignment.
-            //if (t == linux && a == null && b == snap)
-            //{
-            //    a = x64;
-            //}
-            //else if (t == linux && a == x86 && b.HasValue && Range(deb, rpm, archive).Contains(b.Value))
-            //{
-            //    // TODO: TBD: for the moment it includes snap... but we do not think it should...
-            //    a = x64;
-            //}
-
-            if (t == darwin && b != archive && a != null)
-            {
-                b = archive;
-                a = null;
-            }
-
-            var q = (t, b, a);
-
-            bool OnSelectDownloadSpecs((Target t, Build b, Architecture? a) x) =>
-                (q.t == null || q.t == x.t)
-                    && (q.b == null || q.b == x.b)
-                    && (q.a == null || q.a == x.a)
-                ;
-
-            return this.AllDownloadSpecs.Where(OnSelectDownloadSpecs).ToArray();
+            this.help = value;
+            TryShowVersion();
+            TryPresentHelpOnReturn(this.Versions);
         }
-
-        private IEnumerable<(Target t, Build b, Architecture? a)> _selectedDownloadSpecs;
-
-        /// <summary>
-        /// Gets the DownloadSpecs for use throughout the tool. This is calculated just once
-        /// per session, so be careful of the timing during which it is called. Ensure that
-        /// the command line arguments have all been properly parsed by that moment.
-        /// </summary>
-        internal IEnumerable<(Target t, Build b, Architecture? a)> SelectedDownloadSpecs => this._selectedDownloadSpecs ?? (
-            this._selectedDownloadSpecs = GetSelectedDownloadSpecs(this.target, this.build, this.arch)
-        );
 
         public bool TryParseArguments(params string[] args)
         {
@@ -1072,21 +1034,13 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
             int i;
 
-            void OnShowHelp(Help value)
-            {
-                this.help = value;
-                TryShowVersion();
-                TryPresentHelpOnReturn(this.Versions);
-            }
-
             for (i = 0; i < args.Length; i++)
             {
                 var arg = GetArgument(i);
 
                 if (this.HelpOpts.Contains(arg))
                 {
-                    OnShowHelp(show);
-                    break;
+                    return false;
                 }
 
                 if (this.NoPauseOpts.Contains(arg))
@@ -1159,21 +1113,11 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
             ReportDryRun(i, args);
 
-            var downloadSpecs = this.SelectedDownloadSpecs;
-
-            if (!downloadSpecs.Any())
-            {
-                OnShowHelp(show);
-                return false;
-            }
-
             /* Arguments are considered parsed successfully when:
              * 1. Arguments processed successfully
-             * 2. Download specifications are properly aligned
-             * 3. Assets properly discovered
+             * 2. Assets properly discovered
              */
             return i == args.Length
-                && downloadSpecs.Any()
                 && this.CurrentAssets.AreDiscovered(this.Writer);
         }
     }
@@ -1196,6 +1140,51 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
         /// Gets the Strategies for use during Download processing.
         /// </summary>
         private IDictionary<(Target t, Build b, Architecture? a), DownloadStrategy> Strategies { get; }
+
+        private IEnumerable<(Target t, Build b, Architecture? a)> GetSelectedSpecifications(OptionsParser op) =>
+            this.GetSelectedSpecifications(op.Filter);
+
+        private IEnumerable<(Target t, Build b, Architecture? a)> GetSelectedSpecifications((Target? t, Build? b, Architecture? a) filter)
+        {
+            var (t, b, a) = filter;
+
+            if (t == win32 && a == arm)
+            {
+                a = arm64;
+            }
+
+            // Do a little screening of the command line arguments ensuring optimum alignment.
+            if (t == linux && (a == x86 || (a == null && b == snap)))
+            {
+                // TODO: TBD: for the moment it includes snap... but we do not think it should...
+                a = x64;
+            }
+
+            //// Do a little screening of the command line arguments ensuring optimum alignment.
+            //if (t == linux && a == null && b == snap)
+            //{
+            //    a = x64;
+            //}
+            //else if (t == linux && a == x86 && b.HasValue && Range(deb, rpm, archive).Contains(b.Value))
+            //{
+            //    // TODO: TBD: for the moment it includes snap... but we do not think it should...
+            //    a = x64;
+            //}
+
+            if (t == darwin && b != archive && a != null)
+            {
+                b = archive;
+                a = null;
+            }
+
+            bool OnSelectSpecification((Target t, Build b, Architecture? a) x) =>
+                (filter.t == null || filter.t == x.t)
+                    && (filter.b == null || filter.b == x.b)
+                    && (filter.a == null || filter.a == x.a)
+                ;
+
+            return this.Strategies.Keys.Where(OnSelectSpecification).ToArray();
+        }
 
         internal DownloadProcessor(AssetManager assets, OptionsParser options)
             : this(assets, options, null)
@@ -1226,6 +1215,8 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             /// <br/>
             /// <br/>darwin+version+stable => VSCode-darwin-major.minor.patch-stable.zip
 
+            // TODO: TBD: so far with support for "stable" convention...
+            // TODO: TBD: add capability for different conventions, stable, insider, etc...
             IEnumerable<DownloadStrategy> GetStrategies()
             {
                 // win32+system+x86+version => VSCodeUserSetup-ia32-major.minor.patch.exe
@@ -1233,45 +1224,45 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 // win32+archive+x86+version => VSCode-win32-ia32-major.minor.patch.zip
                 yield return Strategy(2, (win32, system, x86))
                     .Directories(Element.Windows, Element.x86).Extensions(Element.exe)
-                    .Convention(hyp, Element.VSCode, Element.Setup, Element.ia32, Element.version);
+                    .Convention(Element.VSCode, Element.Setup, Element.ia32, Element.version);
 
                 yield return Strategy(3, (win32, user, x86))
                     .Directories(Element.Windows, Element.x86).Extensions(Element.exe)
-                    .Convention(hyp, Element.VSCode, Element.User, Element.Setup, Element.ia32, Element.version);
+                    .Convention(Element.VSCode, Element.User, Element.Setup, Element.ia32, Element.version);
 
                 yield return Strategy((win32, archive, x86))
                     .Directories(Element.Windows, Element.x86).Extensions(Element.zip)
-                    .Convention(hyp, Element.VSCode, Element.win32, Element.ia32, Element.version);
+                    .Convention(Element.VSCode, Element.win32, Element.ia32, Element.version);
 
                 // win32+system+x64+version => VSCodeSetup-x64-major.minor.patch.exe
                 // win32+user+x64+version => VSCodeUserSetup-x64-major.minor.patch.exe
                 // win32+archive+x64+version => VSCode-win32-x64-major.minor.patch.zip
                 yield return Strategy(2, (win32, system, x64))
                     .Directories(Element.Windows, Element.x64).Extensions(Element.exe)
-                    .Convention(hyp, Element.VSCode, Element.Setup, Element.x64, Element.version);
+                    .Convention(Element.VSCode, Element.Setup, Element.x64, Element.version);
 
                 yield return Strategy(3, (win32, user, x64))
                     .Directories(Element.Windows, Element.x64).Extensions(Element.exe)
-                    .Convention(hyp, Element.VSCode, Element.User, Element.Setup, Element.x64, Element.version);
+                    .Convention(Element.VSCode, Element.User, Element.Setup, Element.x64, Element.version);
 
                 yield return Strategy((win32, archive, x64))
                     .Directories(Element.Windows, Element.x64).Extensions(Element.zip)
-                    .Convention(hyp, Element.VSCode, Element.win32, Element.x64, Element.version);
+                    .Convention(Element.VSCode, Element.win32, Element.x64, Element.version);
 
                 // win32+system+arm64+version => VSCodeSetup-arm64-major.minor.patch.exe
                 // win32+user+arm64+version => VSCodeUserSetup-arm64-major.minor.patch.exe
                 // win32+archive+arm64+version => VSCode-win32-arm64-major.minor.patch.zip
                 yield return Strategy(2, (win32, system, arm64))
                     .Directories(Element.Windows, Element.arm64).Extensions(Element.exe)
-                    .Convention(hyp, Element.VSCode, Element.Setup, Element.arm64, Element.version);
+                    .Convention(Element.VSCode, Element.Setup, Element.arm64, Element.version);
 
                 yield return Strategy(3, (win32, user, arm64))
                     .Directories(Element.Windows, Element.arm64).Extensions(Element.exe)
-                    .Convention(hyp, Element.VSCode, Element.User, Element.Setup, Element.arm64, Element.version);
+                    .Convention(Element.VSCode, Element.User, Element.Setup, Element.arm64, Element.version);
 
                 yield return Strategy((win32, archive, arm64))
                     .Directories(Element.Windows, Element.arm64).Extensions(Element.zip)
-                    .Convention(hyp, Element.VSCode, Element.win32, Element.version);
+                    .Convention(Element.VSCode, Element.win32, Element.version);
 
                 // linux+deb+x64+version => code_major.minor.version-stable_amd64.deb
                 // linux+rpm+x64+version => code-major.minor.version-stable.el7.x86_64.rpm
@@ -1318,10 +1309,16 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                     .Directories(Element.Linux, Element.arm64).Extensions(Element.tar, Element.gz)
                     .Convention(underscore, Element.code, Element.version, Element.arm64, Element.stable);
 
+                // linux+snap => code-stable-major.minor.patch.snap
+                // linux+archive+snap => code-stable-major.minor.patch.snap
+                yield return Strategy((linux, snap, null))
+                    .Directories(Element.Linux, Element.snap).Extensions(Element.snap)
+                    .Convention(Element.code, Element.stable, Element.version);
+
                 // darwin+version+stable => VSCode-darwin-major.minor.patch-stable.zip
                 yield return Strategy((darwin, archive, null))
                     .Directories(Element.macOS, Element.versionMacOS).Extensions(Element.zip)
-                    .Convention(hyp, Element.VSCode, Element.darwin, Element.version, Element.stable);
+                    .Convention(Element.VSCode, Element.darwin, Element.version, Element.stable);
             }
 
             this.Strategies = GetStrategies().ToDictionary(x => x.Spec);
@@ -1332,6 +1329,28 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
         {
             this.CurrentAssets = assets;
             this.CurrentOptions = options;
+        }
+
+        private IEnumerable<(Target t, Build b, Architecture? a)> _selectedSpecifications;
+
+        /// <summary>
+        /// Gets the DownloadSpecs for use throughout the tool. This is calculated just once
+        /// per session, so be careful of the timing during which it is called. Ensure that
+        /// the command line arguments have all been properly parsed by that moment.
+        /// </summary>
+        internal IEnumerable<(Target t, Build b, Architecture? a)> SelectedSpecifications => this._selectedSpecifications ?? (
+            this._selectedSpecifications = this.GetSelectedSpecifications(this.CurrentOptions.Filter)
+        );
+
+        /// <summary>
+        ///
+        /// </summary>
+        /// <returns></returns>
+        internal bool TryFilterSpecifications()
+        {
+            var op = this.CurrentOptions;
+            var currentSpecs = this.SelectedSpecifications;
+            return currentSpecs.Any();
         }
 
         /// <summary>
@@ -1396,7 +1415,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                     , (nameof(a), (object)a))
                 );
 
-                this.Writer.WriteLine($"{nameof(OnProcessDownloadSpec)}{string.Join(renderedArgs, parens.ToArray())}");
+                this.Writer.WriteLine($"{nameof(this.OnProcessDownloadSpec)}{string.Join(renderedArgs, parens.ToArray())}");
 
                 return;
             }
@@ -1410,10 +1429,10 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
             if (op.IsDry)
             {
-                this.Writer.WriteLine($"{nameof(Dry)}: {nameof(ProcessDownloadSpecs)}(), {nameof(op)}.{nameof(op.SelectedDownloadSpecs)}.{nameof(IList.Count)}: {op.SelectedDownloadSpecs.Count()}");
+                this.Writer.WriteLine($"{nameof(Dry)}: {nameof(ProcessDownloadSpecs)}(), {nameof(op)}.{nameof(this.SelectedSpecifications)}.{nameof(IList.Count)}: {this.SelectedSpecifications.Count()}");
             }
 
-            op.SelectedDownloadSpecs.ToList().ForEach(OnProcessDownloadSpec);
+            this.SelectedSpecifications.ToList().ForEach(this.OnProcessDownloadSpec);
         }
 
 #if false // Temporarily disabled while working out the front of the process
@@ -1664,6 +1683,14 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
         }
 
         /// <summary>
+        /// Sets the Convention in a fluent manner, default <see cref="Delim"/>
+        /// <see cref="hyp"/>.
+        /// </summary>
+        /// <param name="elements"></param>
+        /// <returns></returns>
+        internal DownloadStrategy Convention(params Element[] elements) => Convention(hyp, elements);
+
+        /// <summary>
         /// Sets the Convention in a fluent manner.
         /// </summary>
         /// <param name="delim"></param>
@@ -1864,14 +1891,15 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
         public static void Main(string[] args)
         {
             var op = CurrentOptions;
+            var cp = CurrentProcessor;
 
-            if (!op.TryParseArguments(args))
+            if (!(op.TryParseArguments(args) && cp.TryFilterSpecifications()))
             {
-                Console.WriteLine("here...");
+                op.OnShowHelp();
                 return;
             }
 
-            CurrentProcessor.ProcessDownloadSpecs();
+            cp.ProcessDownloadSpecs();
         }
 
         /// <summary>
