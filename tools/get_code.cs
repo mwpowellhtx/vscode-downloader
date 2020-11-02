@@ -626,46 +626,9 @@ namespace Code.Downloader
 
         internal bool IsDry => this.dry == Dry.dry;
 
+        // TODO: TBD: so insider bits should be refactored...
+        // TODO: TBD: in fact I'm not sure that's also not part of a key...
         internal Insider insider { get; private set; } = default;
-
-        /// <summary>
-        /// Gets the rendered <see cref="Insider"/> Parts for use with the download Uri.
-        /// </summary>
-        /// <see cref="insider"/>
-        /// <see cref="stable"/>
-        private IEnumerable<string> InsiderParts
-        {
-            get
-            {
-                var s = $"{this.insider}";
-
-                if (this.insider == Insider.insider)
-                {
-                    yield return s;
-                    yield return s;
-                }
-
-                if (this.insider == stable)
-                {
-                    yield return string.Empty;
-                    yield return s;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Gets the rendered Stable or Insider for use with the download Uri.
-        /// </summary>
-        /// <see cref="insider"/>
-        /// <see cref="stable"/>
-        private string SlashStableOrInsider
-        {
-            get
-            {
-                string RenderInsider() => this.insider == stable ? nameof(stable) : nameof(insider);
-                return $"{forwardSlash}{RenderInsider()}";
-            }
-        }
 
         internal All? all { get; private set; }
 
@@ -949,7 +912,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             , (this.AllOpts, "--x, get all targets, architectures, and builds", this.DefaultVals)
             , (this.DryOpts, "--x, performs the features in dry run scenarios", this.DefaultVals)
             , (this.CodeVersionOpts, "--x VALUE, specify the Code version, or latest", this.CodeVersionVals)
-            , (this.InsiderOpts, $"--x, whether to get the {nameof(insider)} or {nameof(stable)}", this.DefaultVals)
+            , (this.InsiderOpts, $"--x, whether to get the {nameof(insider)}. Defaults to {nameof(stable)} absent.", this.DefaultVals)
             , (this.VersionOpts, "--x, whether to show the downloader version", this.DefaultVals)
         );
 
@@ -1217,111 +1180,131 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
             // TODO: TBD: so far with support for "stable" convention...
             // TODO: TBD: add capability for different conventions, stable, insider, etc...
-            IEnumerable<DownloadStrategy> GetStrategies()
+            IEnumerable<DownloadStrategy> GetStrategies(OptionsParser op)
             {
                 // win32+system+x86+version => VSCodeUserSetup-ia32-major.minor.patch.exe
                 // win32+user+x86+version => VSCodeSetup-ia32-major.minor.patch.exe
                 // win32+archive+x86+version => VSCode-win32-ia32-major.minor.patch.zip
-                yield return Strategy(2, (win32, system, x86))
+                yield return Strategy(op, 2, (win32, system, x86))
                     .Directories(Element.Windows, Element.x86).Extensions(Element.exe)
-                    .Convention(Element.VSCode, Element.Setup, Element.ia32, Element.version);
+                    .Stable(Element.VSCode, Element.Setup, Element.ia32, Element.version)
+                    ;
 
-                yield return Strategy(3, (win32, user, x86))
+                yield return Strategy(op, 3, (win32, user, x86))
                     .Directories(Element.Windows, Element.x86).Extensions(Element.exe)
-                    .Convention(Element.VSCode, Element.User, Element.Setup, Element.ia32, Element.version);
+                    .Stable(Element.VSCode, Element.User, Element.Setup, Element.ia32, Element.version)
+                    ;
 
-                yield return Strategy((win32, archive, x86))
+                yield return Strategy(op, (win32, archive, x86))
                     .Directories(Element.Windows, Element.x86).Extensions(Element.zip)
-                    .Convention(Element.VSCode, Element.win32, Element.ia32, Element.version);
+                    .Stable(Element.VSCode, Element.win32, Element.ia32, Element.version)
+                    ;
 
                 // win32+system+x64+version => VSCodeSetup-x64-major.minor.patch.exe
                 // win32+user+x64+version => VSCodeUserSetup-x64-major.minor.patch.exe
                 // win32+archive+x64+version => VSCode-win32-x64-major.minor.patch.zip
-                yield return Strategy(2, (win32, system, x64))
+                yield return Strategy(op, 2, (win32, system, x64))
                     .Directories(Element.Windows, Element.x64).Extensions(Element.exe)
-                    .Convention(Element.VSCode, Element.Setup, Element.x64, Element.version);
+                    .Stable(Element.VSCode, Element.Setup, Element.x64, Element.version)
+                    ;
 
-                yield return Strategy(3, (win32, user, x64))
+                yield return Strategy(op, 3, (win32, user, x64))
                     .Directories(Element.Windows, Element.x64).Extensions(Element.exe)
-                    .Convention(Element.VSCode, Element.User, Element.Setup, Element.x64, Element.version);
+                    .Stable(Element.VSCode, Element.User, Element.Setup, Element.x64, Element.version)
+                    ;
 
-                yield return Strategy((win32, archive, x64))
+                yield return Strategy(op, (win32, archive, x64))
                     .Directories(Element.Windows, Element.x64).Extensions(Element.zip)
-                    .Convention(Element.VSCode, Element.win32, Element.x64, Element.version);
+                    .Stable(Element.VSCode, Element.win32, Element.x64, Element.version)
+                    ;
 
                 // win32+system+arm64+version => VSCodeSetup-arm64-major.minor.patch.exe
                 // win32+user+arm64+version => VSCodeUserSetup-arm64-major.minor.patch.exe
                 // win32+archive+arm64+version => VSCode-win32-arm64-major.minor.patch.zip
-                yield return Strategy(2, (win32, system, arm64))
+                yield return Strategy(op, 2, (win32, system, arm64))
                     .Directories(Element.Windows, Element.arm64).Extensions(Element.exe)
-                    .Convention(Element.VSCode, Element.Setup, Element.arm64, Element.version);
+                    .Stable(Element.VSCode, Element.Setup, Element.arm64, Element.version)
+                    ;
 
-                yield return Strategy(3, (win32, user, arm64))
+                yield return Strategy(op, 3, (win32, user, arm64))
                     .Directories(Element.Windows, Element.arm64).Extensions(Element.exe)
-                    .Convention(Element.VSCode, Element.User, Element.Setup, Element.arm64, Element.version);
+                    .Stable(Element.VSCode, Element.User, Element.Setup, Element.arm64, Element.version)
+                    ;
 
-                yield return Strategy((win32, archive, arm64))
+                yield return Strategy(op, (win32, archive, arm64))
                     .Directories(Element.Windows, Element.arm64).Extensions(Element.zip)
-                    .Convention(Element.VSCode, Element.win32, Element.version);
+                    .Stable(Element.VSCode, Element.win32, Element.version)
+                    ;
 
                 // linux+deb+x64+version => code_major.minor.version-stable_amd64.deb
                 // linux+rpm+x64+version => code-major.minor.version-stable.el7.x86_64.rpm
                 // linux+archive+x64+version => code-major.minor.version-x64-stable.tar.gz
-                yield return Strategy((linux, deb, x64))
+                yield return Strategy(op, (linux, deb, x64))
                     .Directories(Element.Linux, Element.x64).Extensions(Element.deb)
-                    .Convention(underscore, Element.code, Element.version, Element.stable, Element.amd64);
+                    .Stable(underscore, Element.code, Element.version, Element.stable, Element.amd64)
+                    ;
 
-                yield return Strategy((linux, rpm, x64))
+                yield return Strategy(op, (linux, rpm, x64))
                     .Directories(Element.Linux, Element.x64).Extensions(Element.rpm)
-                    .Convention(underscore, Element.code, Element.version, Element.stable, Element.el7, Element.x86_64);
+                    .Stable(underscore, Element.code, Element.version, Element.stable, Element.el7, Element.x86_64)
+                    ;
 
-                yield return Strategy((linux, archive, x64))
+                yield return Strategy(op, (linux, archive, x64))
                     .Directories(Element.Linux, Element.x64).Extensions(Element.tar, Element.gz)
-                    .Convention(underscore, Element.code, Element.version, Element.x64, Element.stable);
+                    .Stable(underscore, Element.code, Element.version, Element.x64, Element.stable)
+                    ;
 
                 // linux+deb+arm+version => code_major.minor.version-stable_armhf.deb
                 // linux+rpm+arm+version => code-major.minor.version-stable.el7.armv7hl.rpm
                 // linux+archive+arm+version => code-major.minor.version-armhf-stable.tar.gz
-                yield return Strategy((linux, deb, arm))
+                yield return Strategy(op, (linux, deb, arm))
                     .Directories(Element.Linux, Element.arm).Extensions(Element.deb)
-                    .Convention(underscore, Element.code, Element.version, Element.stable, Element.armhf);
+                    .Stable(underscore, Element.code, Element.version, Element.stable, Element.armhf)
+                    ;
 
-                yield return Strategy((linux, rpm, arm))
+                yield return Strategy(op, (linux, rpm, arm))
                     .Directories(Element.Linux, Element.arm).Extensions(Element.rpm)
-                    .Convention(underscore, Element.code, Element.version, Element.stable, Element.el7, Element.armv7hl);
+                    .Stable(underscore, Element.code, Element.version, Element.stable, Element.el7, Element.armv7hl)
+                    ;
 
-                yield return Strategy((linux, archive, arm))
+                yield return Strategy(op, (linux, archive, arm))
                     .Directories(Element.Linux, Element.arm).Extensions(Element.tar, Element.gz)
-                    .Convention(underscore, Element.code, Element.version, Element.armhf, Element.stable);
+                    .Stable(underscore, Element.code, Element.version, Element.armhf, Element.stable)
+                    ;
 
                 // linux+deb+arm64+version => code_major.minor.version-stable_arm64.deb
                 // linux+rpm+arm64+version => code-major.minor.version-stable.el7.aarch64.rpm
                 // linux+archive+arm64+version => code-major.minor.version-arm64-stable.tar.gz
-                yield return Strategy((linux, deb, arm64))
+                yield return Strategy(op, (linux, deb, arm64))
                     .Directories(Element.Linux, Element.arm64).Extensions(Element.deb)
-                    .Convention(underscore, Element.code, Element.version, Element.stable, Element.arm64);
+                    .Stable(underscore, Element.code, Element.version, Element.stable, Element.arm64)
+                    ;
 
-                yield return Strategy((linux, rpm, arm64))
+                yield return Strategy(op, (linux, rpm, arm64))
                     .Directories(Element.Linux, Element.arm64).Extensions(Element.rpm)
-                    .Convention(underscore, Element.code, Element.version, Element.stable, Element.el7, Element.aarch64);
+                    .Stable(underscore, Element.code, Element.version, Element.stable, Element.el7, Element.aarch64)
+                    ;
 
-                yield return Strategy((linux, archive, arm64))
+                yield return Strategy(op, (linux, archive, arm64))
                     .Directories(Element.Linux, Element.arm64).Extensions(Element.tar, Element.gz)
-                    .Convention(underscore, Element.code, Element.version, Element.arm64, Element.stable);
+                    .Stable(underscore, Element.code, Element.version, Element.arm64, Element.stable)
+                    ;
 
                 // linux+snap => code-stable-major.minor.patch.snap
                 // linux+archive+snap => code-stable-major.minor.patch.snap
-                yield return Strategy((linux, snap, null))
+                yield return Strategy(op, (linux, snap, null))
                     .Directories(Element.Linux, Element.snap).Extensions(Element.snap)
-                    .Convention(Element.code, Element.stable, Element.version);
+                    .Stable(Element.code, Element.stable, Element.version)
+                    ;
 
                 // darwin+version+stable => VSCode-darwin-major.minor.patch-stable.zip
-                yield return Strategy((darwin, archive, null))
+                yield return Strategy(op, (darwin, archive, null))
                     .Directories(Element.macOS, Element.versionMacOS).Extensions(Element.zip)
-                    .Convention(Element.VSCode, Element.darwin, Element.version, Element.stable);
+                    .Stable(Element.VSCode, Element.darwin, Element.version, Element.stable)
+                    ;
             }
 
-            this.Strategies = GetStrategies().ToDictionary(x => x.Spec);
+            this.Strategies = GetStrategies(this.CurrentOptions).ToDictionary(x => x.Spec);
         }
 
         internal DownloadProcessor(AssetManager assets, OptionsParser options, Func<TextWriter> writerSelector)
@@ -1641,6 +1624,8 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
     public class DownloadStrategy
     {
+        private OptionsParser CurrentOptions { get; }
+
         /// <summary>
         /// Gets the PrefixCount, that is, how many <see cref="Element"/> bits
         /// contribute to a non-delimited prefix.
@@ -1652,55 +1637,87 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
         private readonly ICollection<Element> _extensions = Range<Element>().ToList();
 
         /// <summary>
-        /// Gets or Sets the <see name="_convention"/> delimiter, default <see name="hyp"/>.
+        /// Gets or Sets the <see name="_conventions"/> delimiter, default <see name="hyp"/>.
         /// </summary>
         /// <see name="hyp"/>
         /// <see name="underscore"/>
         private char Delim { get; set; } = hyp;
 
-        private readonly ICollection<Element> _convention = Range<Element>().ToList();
+        private readonly IDictionary<Insider, IList<Element>> _conventions = Range(stable, Code.Downloader.Insider.insider)
+            .ToDictionary(key => key, x => (IList<Element>) Range<Element>().ToList());
+
+        private DownloadStrategy AddElements(ICollection<Element> collection, params Element[] values)
+        {
+            values.ToList().ForEach(collection.Add);
+            return this;
+        }
 
         /// <summary>
         /// Sets the Directories in a fluent manner.
         /// </summary>
         /// <param name="elements"></param>
         /// <returns></returns>
-        internal DownloadStrategy Directories(params Element[] elements)
-        {
-            elements.ToList().ForEach(this._path.Add);
-            return this;
-        }
+        internal DownloadStrategy Directories(params Element[] elements) => this.AddElements(this._path, elements);
 
         /// <summary>
         /// Sets the Extensions in a fluent manner.
         /// </summary>
         /// <param name="elements"></param>
         /// <returns></returns>
-        internal DownloadStrategy Extensions(params Element[] elements)
-        {
-            elements.ToList().ForEach(this._extensions.Add);
-            return this;
-        }
+        internal DownloadStrategy Extensions(params Element[] elements) => this.AddElements(this._extensions, elements);
+
+        /// <summary>
+        /// Sets the <see cref="stable"/> Convention in a fluent manner, default
+        /// <see cref="Delim"/> <see cref="hyp"/>.
+        /// </summary>
+        /// <param name="elements"></param>
+        /// <returns></returns>
+        internal DownloadStrategy Stable(params Element[] elements) => this.Convention(stable, hyp, elements);
+
+        /// <summary>
+        /// Sets the <see cref="stable"/> Convention in a fluent manner.
+        /// </summary>
+        /// <param name="delim"></param>
+        /// <param name="elements"></param>
+        /// <returns></returns>
+        internal DownloadStrategy Stable(char delim, params Element[] elements) => this.Convention(stable, delim, elements);
+
+        /// <summary>
+        /// Sets the <see cref="Insider.insider"/> Convention in a fluent manner, default
+        /// <see cref="Delim"/> <see cref="hyp"/>.
+        /// </summary>
+        /// <param name="elements"></param>
+        /// <returns></returns>
+        internal DownloadStrategy Insider(params Element[] elements) => this.Convention(Code.Downloader.Insider.insider, hyp, elements);
+
+        /// <summary>
+        /// Sets the <see cref="Insider.insider"/> Convention in a fluent manner.
+        /// </summary>
+        /// <param name="delim"></param>
+        /// <param name="elements"></param>
+        /// <returns></returns>
+        internal DownloadStrategy Insider(char delim, params Element[] elements) => this.Convention(Code.Downloader.Insider.insider, delim, elements);
 
         /// <summary>
         /// Sets the Convention in a fluent manner, default <see cref="Delim"/>
         /// <see cref="hyp"/>.
         /// </summary>
+        /// <param name="insider"></param>
         /// <param name="elements"></param>
         /// <returns></returns>
-        internal DownloadStrategy Convention(params Element[] elements) => Convention(hyp, elements);
+        private DownloadStrategy Convention(Insider insider, params Element[] elements) => this.Convention(insider, hyp, elements);
 
         /// <summary>
         /// Sets the Convention in a fluent manner.
         /// </summary>
+        /// <param name="insider"></param>
         /// <param name="delim"></param>
         /// <param name="elements"></param>
         /// <returns></returns>
-        internal DownloadStrategy Convention(char delim, params Element[] elements)
+        private DownloadStrategy Convention(Insider insider, char delim, params Element[] elements)
         {
             this.Delim = delim;
-            elements.ToList().ForEach(this._convention.Add);
-            return this;
+            return this.AddElements(this._conventions[insider], elements);
         }
 
         /// <summary>
@@ -1711,22 +1728,25 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
         /// <summary>
         /// Creates a new <see cref="DownloadStrategy"/> instance.
         /// </summary>
+        /// <param cref="op"></param>
         /// <param cref="spec"></param>
         /// <returns></returns>
-        internal static DownloadStrategy Strategy((Target t, Build b, Architecture? a) spec) => new DownloadStrategy(spec);
+        internal static DownloadStrategy Strategy(OptionsParser op, (Target t, Build b, Architecture? a) spec) => new DownloadStrategy(op, spec);
 
         /// <summary>
         /// Creates a new <see cref="DownloadStrategy"/> instance.
         /// </summary>
+        /// <param cref="op"></param>
         /// <param cref="prefixCount"></param>
         /// <param cref="spec"></param>
         /// <returns></returns>
-        internal static DownloadStrategy Strategy(int prefixCount, (Target t, Build b, Architecture? a) spec) => new DownloadStrategy(prefixCount, spec);
+        internal static DownloadStrategy Strategy(OptionsParser op, int prefixCount, (Target t, Build b, Architecture? a) spec) => new DownloadStrategy(op, prefixCount, spec);
 
-        private DownloadStrategy((Target t, Build b, Architecture? a) spec) : this(1, spec) { }
+        private DownloadStrategy(OptionsParser op, (Target t, Build b, Architecture? a) spec) : this(op, 1, spec) { }
 
-        private DownloadStrategy(int prefixCount, (Target t, Build b, Architecture? a) spec)
+        private DownloadStrategy(OptionsParser op, int prefixCount, (Target t, Build b, Architecture? a) spec)
         {
+            this.CurrentOptions = op;
             this.PrefixCount = prefixCount;
             this.Spec = spec;
         }
@@ -1793,6 +1813,8 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
         internal (string url, string path, string fileName) Render(Versions versions)
         {
+            var op = this.CurrentOptions;
+
             // TODO: TBD: url Uri parts...
             var url = string.Empty;
 
@@ -1826,7 +1848,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
                 var extensions = this._extensions.ToList().Select(RenderConventionOrExtension).ToArray();
 
-                var fileName = string.Join($"{delim}", this._convention.ToList().Select(RenderConventionOrExtension));
+                var fileName = string.Join($"{delim}", this._conventions[op.insider].Select(RenderConventionOrExtension));
 
                 return string.Join($"{dot}", Range(fileName).Concat(extensions));
             }
