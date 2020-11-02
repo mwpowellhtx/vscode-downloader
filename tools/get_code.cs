@@ -1188,16 +1188,19 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 yield return Strategy(op, 2, (win32, system, x86))
                     .Directories(Element.Windows, Element.x86).Extensions(Element.exe)
                     .Stable(Element.VSCode, Element.Setup, Element.ia32, Element.version)
+                    .Insider(Element.VSCode, Element.Setup, Element.ia32, Element.version, Element.insider)
                     ;
 
                 yield return Strategy(op, 3, (win32, user, x86))
                     .Directories(Element.Windows, Element.x86).Extensions(Element.exe)
                     .Stable(Element.VSCode, Element.User, Element.Setup, Element.ia32, Element.version)
+                    .Insider(Element.VSCode, Element.User, Element.Setup, Element.ia32, Element.version, Element.insider)
                     ;
 
                 yield return Strategy(op, (win32, archive, x86))
                     .Directories(Element.Windows, Element.x86).Extensions(Element.zip)
                     .Stable(Element.VSCode, Element.win32, Element.ia32, Element.version)
+                    .Insider(Element.VSCode, Element.win32, Element.ia32, Element.version, Element.insider)
                     ;
 
                 // win32+system+x64+version => VSCodeSetup-x64-major.minor.patch.exe
@@ -1206,16 +1209,19 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 yield return Strategy(op, 2, (win32, system, x64))
                     .Directories(Element.Windows, Element.x64).Extensions(Element.exe)
                     .Stable(Element.VSCode, Element.Setup, Element.x64, Element.version)
+                    .Insider(Element.VSCode, Element.Setup, Element.x64, Element.version, Element.insider)
                     ;
 
                 yield return Strategy(op, 3, (win32, user, x64))
                     .Directories(Element.Windows, Element.x64).Extensions(Element.exe)
                     .Stable(Element.VSCode, Element.User, Element.Setup, Element.x64, Element.version)
+                    .Insider(Element.VSCode, Element.User, Element.Setup, Element.x64, Element.version, Element.insider)
                     ;
 
                 yield return Strategy(op, (win32, archive, x64))
                     .Directories(Element.Windows, Element.x64).Extensions(Element.zip)
                     .Stable(Element.VSCode, Element.win32, Element.x64, Element.version)
+                    .Insider(Element.VSCode, Element.win32, Element.x64, Element.version, Element.insider)
                     ;
 
                 // win32+system+arm64+version => VSCodeSetup-arm64-major.minor.patch.exe
@@ -1224,16 +1230,19 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 yield return Strategy(op, 2, (win32, system, arm64))
                     .Directories(Element.Windows, Element.arm64).Extensions(Element.exe)
                     .Stable(Element.VSCode, Element.Setup, Element.arm64, Element.version)
+                    .Insider(Element.VSCode, Element.Setup, Element.arm64, Element.version, Element.insider)
                     ;
 
                 yield return Strategy(op, 3, (win32, user, arm64))
                     .Directories(Element.Windows, Element.arm64).Extensions(Element.exe)
                     .Stable(Element.VSCode, Element.User, Element.Setup, Element.arm64, Element.version)
+                    .Insider(Element.VSCode, Element.User, Element.Setup, Element.arm64, Element.version, Element.insider)
                     ;
 
                 yield return Strategy(op, (win32, archive, arm64))
                     .Directories(Element.Windows, Element.arm64).Extensions(Element.zip)
                     .Stable(Element.VSCode, Element.win32, Element.version)
+                    .Insider(Element.VSCode, Element.win32, Element.version, Element.insider)
                     ;
 
                 // linux+deb+x64+version => code_major.minor.version-stable_amd64.deb
@@ -1242,16 +1251,19 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 yield return Strategy(op, (linux, deb, x64))
                     .Directories(Element.Linux, Element.x64).Extensions(Element.deb)
                     .Stable(underscore, Element.code, Element.version, Element.stable, Element.amd64)
+                    .Insider(underscore, Element.code, Element.version, Element.insider, Element.amd64)
                     ;
 
                 yield return Strategy(op, (linux, rpm, x64))
                     .Directories(Element.Linux, Element.x64).Extensions(Element.rpm)
                     .Stable(underscore, Element.code, Element.version, Element.stable, Element.el7, Element.x86_64)
+                    .Insider(underscore, Element.code, Element.version, Element.insider, Element.el7, Element.x86_64)
                     ;
 
                 yield return Strategy(op, (linux, archive, x64))
                     .Directories(Element.Linux, Element.x64).Extensions(Element.tar, Element.gz)
                     .Stable(underscore, Element.code, Element.version, Element.x64, Element.stable)
+                    .Insider(underscore, Element.code, Element.version, Element.x64, Element.insider)
                     ;
 
                 // linux+deb+arm+version => code_major.minor.version-stable_armhf.deb
@@ -1260,16 +1272,19 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 yield return Strategy(op, (linux, deb, arm))
                     .Directories(Element.Linux, Element.arm).Extensions(Element.deb)
                     .Stable(underscore, Element.code, Element.version, Element.stable, Element.armhf)
+                    .Insider(underscore, Element.code, Element.version, Element.insider, Element.armhf)
                     ;
 
                 yield return Strategy(op, (linux, rpm, arm))
                     .Directories(Element.Linux, Element.arm).Extensions(Element.rpm)
                     .Stable(underscore, Element.code, Element.version, Element.stable, Element.el7, Element.armv7hl)
+                    .Insider(underscore, Element.code, Element.version, Element.insider, Element.el7, Element.armv7hl)
                     ;
 
                 yield return Strategy(op, (linux, archive, arm))
                     .Directories(Element.Linux, Element.arm).Extensions(Element.tar, Element.gz)
                     .Stable(underscore, Element.code, Element.version, Element.armhf, Element.stable)
+                    .Insider(underscore, Element.code, Element.version, Element.armhf, Element.insider)
                     ;
 
                 // linux+deb+arm64+version => code_major.minor.version-stable_arm64.deb
@@ -1278,16 +1293,19 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 yield return Strategy(op, (linux, deb, arm64))
                     .Directories(Element.Linux, Element.arm64).Extensions(Element.deb)
                     .Stable(underscore, Element.code, Element.version, Element.stable, Element.arm64)
+                    .Insider(underscore, Element.code, Element.version, Element.insider, Element.arm64)
                     ;
 
                 yield return Strategy(op, (linux, rpm, arm64))
                     .Directories(Element.Linux, Element.arm64).Extensions(Element.rpm)
                     .Stable(underscore, Element.code, Element.version, Element.stable, Element.el7, Element.aarch64)
+                    .Insider(underscore, Element.code, Element.version, Element.insider, Element.el7, Element.aarch64)
                     ;
 
                 yield return Strategy(op, (linux, archive, arm64))
                     .Directories(Element.Linux, Element.arm64).Extensions(Element.tar, Element.gz)
                     .Stable(underscore, Element.code, Element.version, Element.arm64, Element.stable)
+                    .Insider(underscore, Element.code, Element.version, Element.arm64, Element.insider)
                     ;
 
                 // linux+snap => code-stable-major.minor.patch.snap
@@ -1295,12 +1313,14 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 yield return Strategy(op, (linux, snap, null))
                     .Directories(Element.Linux, Element.snap).Extensions(Element.snap)
                     .Stable(Element.code, Element.stable, Element.version)
+                    .Insider(Element.code, Element.insider, Element.version)
                     ;
 
                 // darwin+version+stable => VSCode-darwin-major.minor.patch-stable.zip
                 yield return Strategy(op, (darwin, archive, null))
                     .Directories(Element.macOS, Element.versionMacOS).Extensions(Element.zip)
                     .Stable(Element.VSCode, Element.darwin, Element.version, Element.stable)
+                    .Insider(Element.VSCode, Element.darwin, Element.version, Element.insider)
                     ;
             }
 
