@@ -29,6 +29,69 @@ namespace Code.Downloader
     using static CodeVersion;
     using static NoPause;
     using static AssetManager;
+    using static Chars;
+    using static DownloadStrategy;
+
+    /// <summary>
+    /// Defines many commonly used delimiters and such for use throughout.
+    /// </summary>
+    internal static class Chars
+    {
+        /// <summary>
+        /// &apos;:'&apos;
+        /// </summary>
+        public const char colon = ':';
+
+        /// <summary>
+        /// &apos;'&apos;
+        /// </summary>
+        public const char tick = '\'';
+
+        /// <summary>
+        /// &apos;;&apos;
+        /// </summary>
+        public const char comma = ',';
+
+        /// <summary>
+        /// &apos;-&apos;
+        /// </summary>
+        public const char hyp = '-';
+
+        /// <summary>
+        /// &apos;.&apos;
+        /// </summary>
+        public const char dot = '.';
+
+        /// <summary>
+        /// &apos;/&apos;
+        /// </summary>
+        public const char forwardSlash = '/';
+
+        /// <summary>
+        /// &apos;_&apos;
+        /// </summary>
+        public const char underscore = '_';
+
+        /// <summary>
+        /// &apos;|&apos;
+        /// </summary>
+        public const char pipe = '|';
+
+        /// <summary>
+        /// &quot;()&quot;
+        /// </summary>
+        public const string parens = "()";
+
+        /// <summary>
+        /// &quot;[]&quot;
+        /// </summary>
+        public const string squareBrackets = "[]";
+
+        /// <summary>
+        /// &quot;<>&quot;
+        /// </summary>
+        public const string angleBrackets = "<>";
+    }
 
     public enum CodeVersion
     {
@@ -249,7 +312,9 @@ namespace Code.Downloader
         insider,
         stable,
         ia32,
+        x86,
         x64,
+        arm,
         amd64, // For Linux DEB x64
         arm64, // For Linux ARM64 DEB and archive
         el7, // For Linux RPM...
@@ -263,70 +328,9 @@ namespace Code.Downloader
         rpm,
         tar,
         gz,
+        version,
+        versionMacOS,
     }
-
-    ///// <summary>
-    /////
-    ///// </summary>
-    //public static class Bits2
-    //{
-    //    /// <summary>
-    //    ///
-    //    /// </summary>
-    //    internal const string Windows = nameof(Windows);
-    //
-    //    /// <summary>
-    //    ///
-    //    /// </summary>
-    //    internal const string Linux = nameof(Windows);
-    //
-    //    /// <summary>
-    //    ///
-    //    /// </summary>
-    //    internal const string macOS = nameof(macOS);
-    //
-    //    /// <summary>
-    //    ///
-    //    /// </summary>
-    //    internal const string x64 = nameof(x64);
-    //
-    //    /// <summary>
-    //    ///
-    //    /// </summary>
-    //    internal const string x86 = nameof(x86);
-    //
-    //    /// <summary>
-    //    ///
-    //    /// </summary>
-    //    internal const string arm = nameof(arm);
-    //
-    //    /// <summary>
-    //    ///
-    //    /// </summary>
-    //    internal const string arm64 = nameof(arm64);
-    //
-    //    /// <summary>
-    //    ///
-    //    /// </summary>
-    //    internal const string zip = nameof(zip);
-    //
-    //    /// <summary>
-    //    ///
-    //    /// </summary>
-    //    internal const string tar = nameof(tar);
-    //
-    //    /// <summary>
-    //    ///
-    //    /// </summary>
-    //    internal const string gz = nameof(gz);
-    //
-    //    /// <summary>
-    //    ///
-    //    /// </summary>
-    //    /// <see cref="tar"/>
-    //    /// <see cref="gz"/>
-    //    internal static string tarball { get; } = string.Join(".", tar, gz);
-    //}
 
     internal class AssetManager
     {
@@ -419,23 +423,23 @@ namespace Code.Downloader
         /// <br/>win32+system+x86+version => VSCodeSetup-ia32-major.minor.patch.exe
         /// <br/>win32+user+x86+version => VSCodeUserSetup-ia32-major.minor.patch.exe
         /// <br/>win32+archive+x86+version => VSCode-win32-ia32-major.minor.patch.zip
-        ///
+        /// <br/>
         /// <br/>win32+system+x64+version => VSCodeSetup-x86-major.minor.patch.exe
         /// <br/>win32+user+x64+version => VSCodeUserSetup-x86-major.minor.patch.exe
         /// <br/>win32+archive+x64+version => VSCode-win32-x86-major.minor.patch.zip
-        ///
+        /// <br/>
         /// <br/>win32+system+x64+version => VSCodeSetup-x86-major.minor.patch.exe
         /// <br/>win32+user+x64+version => VSCodeUserSetup-x86-major.minor.patch.exe
         /// <br/>win32+archive+x64+version => VSCode-win32-x86-major.minor.patch.zip
-        ///
+        /// <br/>
         /// <br/>win32+system+arm64+version => VSCodeSetup-arm64-major.minor.patch.exe
         /// <br/>win32+user+arm64+version => VSCodeUserSetup-arm64-major.minor.patch.exe
         /// <br/>win32+archive+arm64+version => VSCode-win32-arm64-major.minor.patch.zip
-        ///
+        /// <br/>
         /// <br/>linux+deb+x64+version => code_major.minor.patch-amd64.deb
         /// <br/>linux+rpm+x64+version => code_major.minor.patch-amd64.rpm
         /// <br/>linux+archive+x64+version => code_major.minor.patch-amd64.tar.gz
-        ///
+        /// <br/>
         /// <br/>darwin+version+stable => VSCode-darwin-major.minor.patch-stable.zip
         /// <br/>
         /// <br/>And a few notes concerning combinations and file naming conventions:
@@ -527,7 +531,39 @@ namespace Code.Downloader
 
         internal static System.Version macOS { get; } = Version.Parse("10.10");
 
+        // TODO: TBD: version informs the directory path...
+        // TODO: TBD: the macOS version informs darwin directory path...
+        // TODO: TBD: version may inform the download Uri...
+        // TODO: TBD: version may also inform the download Uri...
+        // TODO: TBD: or may request "latest", in which case "latest" informs the download Uri...
+
+        /// <summary>
+        /// Gets or Sets the Rendered <see cref="string"/> <see cref="macOS"/>.
+        /// </summary>
+        /// <remarks>Mainly for use in the <see cref="Target.darwin"/> Directory Path.</remarks>
+        /// <see cref="macOS"/>
+        internal static string renderedMacOS => $"{macOS}";
+
         internal static System.Version latestVersion { get; } = Version.Parse("1.50.1");
+
+        /// <summary>
+        /// Gets or Sets the Rendered <see cref="string"/> <see cref="version"/>.
+        /// </summary>
+        /// <remarks>Mainly for use in the Directory Path.</remarks>
+        /// <see cref="version"/>
+        internal string renderedVersion => $"{version}";
+
+        /// <summary>
+        /// Gets or Sets whether to Show the downloader Version.
+        /// </summary>
+        /// <remarks>For use when Rendering each FileName.</remarks>
+        /// <see cref="CodeVersion"/>
+        /// <see cref="CodeVersion.latest"/>
+        /// <see cref="version"/>
+        /// <see cref="selector"/>
+        internal string renderedVersionOrLatest => selector == CodeVersion.latest
+            ? nameof(CodeVersion.latest)
+            : $"{version}";
 
         /// <summary>
         /// Resets the Versions to default state.
@@ -623,7 +659,6 @@ namespace Code.Downloader
             get
             {
                 string RenderInsider() => this.insider == stable ? nameof(stable) : nameof(insider);
-                const char forwardSlash = '/';
                 return $"{forwardSlash}{RenderInsider()}";
             }
         }
@@ -693,7 +728,6 @@ namespace Code.Downloader
         {
             this.CurrentAssets = assets;
 
-            const string angleBrackets = "<>";
             string OnRenderValue<T>(T value) => $"{value}";
 
             this.TargetVals = Range(darwin, linux, win32).Select(OnRenderValue).ToArray();
@@ -709,8 +743,6 @@ namespace Code.Downloader
                 return lengths.Select(length => length ?? type_Name.Length)
                     .Select(length => type_Name.Substring(0, length));
             }
-
-            const char hyp = '-';
 
             static string DressOptionPunctuation(string opt)
             {
@@ -837,8 +869,7 @@ namespace Code.Downloader
         {
             static string RenderFlagValues<K, V>(K key, params V[] values)
             {
-                const string pipe = "|";
-                return $"--{key} {string.Join(pipe, values.Select(x => $"{x}"))}";
+                return $"--{key} {string.Join($"{pipe}", values.Select(x => $"{x}"))}";
             }
 
             const string target = nameof(this.target);
@@ -869,10 +900,9 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
         private bool TryPresentHelp(string summary, params (string[] flags, string description, string[] values)[] opts)
         {
             //const int colWidth = 4;
-            const string flagDelim = ",";
             const string flagPrefix = "  ";
 
-            var maxFlagWidth = opts.Max(x => x.flags.Sum(y => y.Length + flagPrefix.Length) + (x.flags.Length - 1) * flagDelim.Length);
+            var maxFlagWidth = opts.Max(x => x.flags.Sum(y => y.Length + flagPrefix.Length) + (x.flags.Length - 1));
             //var flagsWidth = ((int)(maxFlagWidth / colWidth) + 1) * colWidth;
 
             this.Writer.WriteLine();
@@ -886,7 +916,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
             foreach (var (flags, description, values) in opts)
             {
-                this.Writer.WriteLine(string.Join(flagDelim, flags.Select(x => flagPrefix + x)));
+                this.Writer.WriteLine(string.Join($"{comma}", flags.Select(x => flagPrefix + x)));
 
                 foreach (var line in description.SplitMultiline(maxFlagWidth))
                 {
@@ -924,14 +954,10 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 return;
             }
 
-            const char tick = '\'';
-            const char comma = ',';
-
             string Q(string s) => $"{tick}{s}{tick}";
 
             string A<T>(params T[] values)
             {
-                const string squareBrackets = "[]";
                 return string.Join(string.Join($"{comma} ", values.Select(x => $"{x}").Select(Q)), squareBrackets.ToArray());
             }
 
@@ -1160,11 +1186,145 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
         internal Versions CurrentVersions { get; } = new Versions();
 
+        // TODO: TBD: probably do not need a string Version property...
+        // TODO: TBD: we will relay the CurrentVersions instance to the strategy instead...
         private string Version => this.CurrentVersions.selector == latest ? $"{latest}" : $"{version}";
+
+		// TODO: TBD: the strategies dictionary being what it is, we might consider these keys as being the "specs" themselves, actually...
+		// TODO: TBD: will save that factoring for a subsequent commitment...
+        /// <summary>
+        /// Gets the Strategies for use during Download processing.
+        /// </summary>
+        private IDictionary<(Target t, Build b, Architecture? a), DownloadStrategy> Strategies { get; }
 
         internal DownloadProcessor(AssetManager assets, OptionsParser options)
             : this(assets, options, null)
         {
+            /// <br/>win32+system+x86+version => VSCodeUserSetup-ia32-major.minor.patch.exe
+            /// <br/>win32+user+x86+version => VSCodeSetup-ia32-major.minor.patch.exe
+            /// <br/>win32+archive+x86+version => VSCode-win32-ia32-major.minor.patch.zip
+            /// <br/>
+            /// <br/>win32+system+x64+version => VSCodeSetup-x64-major.minor.patch.exe
+            /// <br/>win32+user+x64+version => VSCodeUserSetup-x64-major.minor.patch.exe
+            /// <br/>win32+archive+x64+version => VSCode-win32-x64-major.minor.patch.zip
+            /// <br/>
+            /// <br/>win32+system+arm64+version => VSCodeSetup-arm64-major.minor.patch.exe
+            /// <br/>win32+user+arm64+version => VSCodeUserSetup-arm64-major.minor.patch.exe
+            /// <br/>win32+archive+arm64+version => VSCode-win32-arm64-major.minor.patch.zip
+            /// <br/>
+            /// <br/>linux+deb+x64+version => code_major.minor.version-stable_amd64.deb
+            /// <br/>linux+rpm+x64+version => code-major.minor.version-stable.el7.x86_64.rpm
+            /// <br/>linux+archive+x64+version => code-major.minor.version-x64-stable.tar.gz
+            /// <br/>
+            /// <br/>linux+deb+arm+version => code_major.minor.version-stable_armhf.deb
+            /// <br/>linux+rpm+arm+version => code-major.minor.version-stable.el7.armv7hl.rpm
+            /// <br/>linux+archive+arm+version => code-major.minor.version-armhf-stable.tar.gz
+            /// <br/>
+            /// <br/>linux+deb+arm64+version => code_major.minor.version-stable_arm64.deb
+            /// <br/>linux+rpm+arm64+version => code-major.minor.version-stable.el7.aarch64.rpm
+            /// <br/>linux+archive+arm64+version => code-major.minor.version-arm64-stable.tar.gz
+            /// <br/>
+            /// <br/>darwin+version+stable => VSCode-darwin-major.minor.patch-stable.zip
+
+            IEnumerable<DownloadStrategy> GetStrategies()
+            {
+                // win32+system+x86+version => VSCodeUserSetup-ia32-major.minor.patch.exe
+                // win32+user+x86+version => VSCodeSetup-ia32-major.minor.patch.exe
+                // win32+archive+x86+version => VSCode-win32-ia32-major.minor.patch.zip
+                yield return Strategy(2, (win32, system, x86))
+                    .Directories(Element.Windows, Element.x86).Extensions(Element.exe)
+                    .Convention(hyp, Element.VSCode, Element.Setup, Element.ia32, Element.version);
+
+                yield return Strategy(3, (win32, user, x86))
+                    .Directories(Element.Windows, Element.x86).Extensions(Element.exe)
+                    .Convention(hyp, Element.VSCode, Element.User, Element.Setup, Element.ia32, Element.version);
+
+                yield return Strategy((win32, archive, x86))
+                    .Directories(Element.Windows, Element.x86).Extensions(Element.zip)
+                    .Convention(hyp, Element.VSCode, Element.win32, Element.ia32, Element.version);
+
+                // win32+system+x64+version => VSCodeSetup-x64-major.minor.patch.exe
+                // win32+user+x64+version => VSCodeUserSetup-x64-major.minor.patch.exe
+                // win32+archive+x64+version => VSCode-win32-x64-major.minor.patch.zip
+                yield return Strategy(2, (win32, system, x64))
+                    .Directories(Element.Windows, Element.x64).Extensions(Element.exe)
+                    .Convention(hyp, Element.VSCode, Element.Setup, Element.x64, Element.version);
+
+                yield return Strategy(3, (win32, user, x64))
+                    .Directories(Element.Windows, Element.x64).Extensions(Element.exe)
+                    .Convention(hyp, Element.VSCode, Element.User, Element.Setup, Element.x64, Element.version);
+
+                yield return Strategy((win32, archive, x64))
+                    .Directories(Element.Windows, Element.x64).Extensions(Element.zip)
+                    .Convention(hyp, Element.VSCode, Element.win32, Element.x64, Element.version);
+
+                // win32+system+arm64+version => VSCodeSetup-arm64-major.minor.patch.exe
+                // win32+user+arm64+version => VSCodeUserSetup-arm64-major.minor.patch.exe
+                // win32+archive+arm64+version => VSCode-win32-arm64-major.minor.patch.zip
+                yield return Strategy(2, (win32, system, arm64))
+                    .Directories(Element.Windows, Element.arm64).Extensions(Element.exe)
+                    .Convention(hyp, Element.VSCode, Element.Setup, Element.arm64, Element.version);
+
+                yield return Strategy(3, (win32, user, arm64))
+                    .Directories(Element.Windows, Element.arm64).Extensions(Element.exe)
+                    .Convention(hyp, Element.VSCode, Element.User, Element.Setup, Element.arm64, Element.version);
+
+                yield return Strategy((win32, archive, arm64))
+                    .Directories(Element.Windows, Element.arm64).Extensions(Element.zip)
+                    .Convention(hyp, Element.VSCode, Element.win32, Element.version);
+
+                // linux+deb+x64+version => code_major.minor.version-stable_amd64.deb
+                // linux+rpm+x64+version => code-major.minor.version-stable.el7.x86_64.rpm
+                // linux+archive+x64+version => code-major.minor.version-x64-stable.tar.gz
+                yield return Strategy((linux, deb, x64))
+                    .Directories(Element.Linux, Element.x64).Extensions(Element.deb)
+                    .Convention(underscore, Element.code, Element.version, Element.stable, Element.amd64);
+
+                yield return Strategy((linux, rpm, x64))
+                    .Directories(Element.Linux, Element.x64).Extensions(Element.rpm)
+                    .Convention(underscore, Element.code, Element.version, Element.stable, Element.el7, Element.x86_64);
+
+                yield return Strategy((linux, archive, x64))
+                    .Directories(Element.Linux, Element.x64).Extensions(Element.tar, Element.gz)
+                    .Convention(underscore, Element.code, Element.version, Element.x64, Element.stable);
+
+                // linux+deb+arm+version => code_major.minor.version-stable_armhf.deb
+                // linux+rpm+arm+version => code-major.minor.version-stable.el7.armv7hl.rpm
+                // linux+archive+arm+version => code-major.minor.version-armhf-stable.tar.gz
+                yield return Strategy((linux, deb, arm))
+                    .Directories(Element.Linux, Element.arm).Extensions(Element.deb)
+                    .Convention(underscore, Element.code, Element.version, Element.stable, Element.armhf);
+
+                yield return Strategy((linux, rpm, arm))
+                    .Directories(Element.Linux, Element.arm).Extensions(Element.rpm)
+                    .Convention(underscore, Element.code, Element.version, Element.stable, Element.el7, Element.armv7hl);
+
+                yield return Strategy((linux, archive, arm))
+                    .Directories(Element.Linux, Element.arm).Extensions(Element.tar, Element.gz)
+                    .Convention(underscore, Element.code, Element.version, Element.armhf, Element.stable);
+
+                // linux+deb+arm64+version => code_major.minor.version-stable_arm64.deb
+                // linux+rpm+arm64+version => code-major.minor.version-stable.el7.aarch64.rpm
+                // linux+archive+arm64+version => code-major.minor.version-arm64-stable.tar.gz
+                yield return Strategy((linux, deb, arm64))
+                    .Directories(Element.Linux, Element.arm64).Extensions(Element.deb)
+                    .Convention(underscore, Element.code, Element.version, Element.stable, Element.arm64);
+
+                yield return Strategy((linux, rpm, arm64))
+                    .Directories(Element.Linux, Element.arm64).Extensions(Element.rpm)
+                    .Convention(underscore, Element.code, Element.version, Element.stable, Element.el7, Element.aarch64);
+
+                yield return Strategy((linux, archive, arm64))
+                    .Directories(Element.Linux, Element.arm64).Extensions(Element.tar, Element.gz)
+                    .Convention(underscore, Element.code, Element.version, Element.arm64, Element.stable);
+
+                // darwin+version+stable => VSCode-darwin-major.minor.patch-stable.zip
+                yield return Strategy((darwin, archive, null))
+                    .Directories(Element.macOS, Element.versionMacOS).Extensions(Element.zip)
+                    .Convention(hyp, Element.VSCode, Element.darwin, Element.version, Element.stable);
+            }
+
+            this.Strategies = GetStrategies().ToDictionary(x => x.Spec);
         }
 
         internal DownloadProcessor(AssetManager assets, OptionsParser options, Func<TextWriter> writerSelector)
@@ -1230,9 +1390,6 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
             if (op.IsDry)
             {
-                const char comma = ',';
-                const string parens = "()";
-
                 var renderedArgs = string.Join($"{comma} ", RenderNameObjectPairs(
                     (nameof(t), (object)t)
                     , (nameof(b), (object)b)
@@ -1244,6 +1401,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 return;
             }
 
+            // TODO: TBD: this one is a work in progress...
         }
 
         public void ProcessDownloadSpecs()
@@ -1259,6 +1417,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
         }
 
 #if false // Temporarily disabled while working out the front of the process
+    // TODO: TBD: all this can probably go away, we've approached it a slightly different/better way...
 
         /// <summary>
         ///
@@ -1329,7 +1488,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                     : TryProcessAny(Path.Combine(version, t, a), phrase);
             }
 
-            bool TryProcessDarwin() => TryProcessAny(Path.Combine(version, Directories.macOS, $"{Versions.MacOS}+"), RenderAssertOrAssetInsiderPhrase(t));
+            bool TryProcessDarwin() => TryProcessAny(Path.Combine(version, Directories.macOS, $"{Versions.macOS}+"), RenderAssertOrAssetInsiderPhrase(t));
 
             switch (t)
             {
@@ -1461,74 +1620,195 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
     }
 
-    public class DownloadDescriptor
+    public class DownloadStrategy
     {
-        private static IEnumerable<Architecture> GetArchitectures(Target target)
+        /// <summary>
+        /// Gets the PrefixCount, that is, how many <see cref="Element"/> bits
+        /// contribute to a non-delimited prefix.
+        /// </summary>
+        internal int PrefixCount { get; } = 1;
+
+        private readonly ICollection<Element> _path = Range<Element>().ToList();
+
+        private readonly ICollection<Element> _extensions = Range<Element>().ToList();
+
+        /// <summary>
+        /// Gets or Sets the <see name="_convention"/> delimiter, default <see name="hyp"/>.
+        /// </summary>
+        /// <see name="hyp"/>
+        /// <see name="underscore"/>
+        private char Delim { get; set; } = hyp;
+
+        private readonly ICollection<Element> _convention = Range<Element>().ToList();
+
+        /// <summary>
+        /// Sets the Directories in a fluent manner.
+        /// </summary>
+        /// <param name="elements"></param>
+        /// <returns></returns>
+        internal DownloadStrategy Directories(params Element[] elements)
         {
-            if (target == win32)
+            elements.ToList().ForEach(this._path.Add);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the Extensions in a fluent manner.
+        /// </summary>
+        /// <param name="elements"></param>
+        /// <returns></returns>
+        internal DownloadStrategy Extensions(params Element[] elements)
+        {
+            elements.ToList().ForEach(this._extensions.Add);
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the Convention in a fluent manner.
+        /// </summary>
+        /// <param name="delim"></param>
+        /// <param name="elements"></param>
+        /// <returns></returns>
+        internal DownloadStrategy Convention(char delim, params Element[] elements)
+        {
+            this.Delim = delim;
+            elements.ToList().ForEach(this._convention.Add);
+            return this;
+        }
+
+        /// <summary>
+        /// Gets the Descriptor specification.
+        /// </summary>
+        internal (Target t, Build b, Architecture? a) Spec { get; }
+
+        /// <summary>
+        /// Creates a new <see cref="DownloadStrategy"/> instance.
+        /// </summary>
+        /// <param cref="spec"></param>
+        /// <returns></returns>
+        internal static DownloadStrategy Strategy((Target t, Build b, Architecture? a) spec) => new DownloadStrategy(spec);
+
+        /// <summary>
+        /// Creates a new <see cref="DownloadStrategy"/> instance.
+        /// </summary>
+        /// <param cref="prefixCount"></param>
+        /// <param cref="spec"></param>
+        /// <returns></returns>
+        internal static DownloadStrategy Strategy(int prefixCount, (Target t, Build b, Architecture? a) spec) => new DownloadStrategy(prefixCount, spec);
+
+        private DownloadStrategy((Target t, Build b, Architecture? a) spec) : this(1, spec) { }
+
+        private DownloadStrategy(int prefixCount, (Target t, Build b, Architecture? a) spec)
+        {
+            this.PrefixCount = prefixCount;
+            this.Spec = spec;
+        }
+
+        private Element TargetElement
+        {
+            get
             {
-                yield return x64;
-                yield return x86;
-                yield return arm64;
-            }
-            else if (target == linux)
-            {
-                yield return x64;
-                yield return arm;
-                yield return arm64;
+                var (t, _, __) = this.Spec;
+
+                if (t == darwin)
+                {
+                    return Element.darwin;
+                }
+                else if (t == linux)
+                {
+                    return Element.Linux;
+                }
+
+                return Element.Windows;
             }
         }
 
-        private static IEnumerable<Build> GetBuilds(Target target)
+        private Element ArchitectureElement
         {
-            if (target == win32)
+            get
             {
-                yield return user;
-                yield return system;
-                yield return archive;
-            }
-            else if (target == linux)
-            {
-                yield return deb;
-                yield return rpm;
-                yield return archive;
+                var (t, _, a) = this.Spec;
+
+                if (t == win32)
+                {
+                    if (a == x86)
+                    {
+                        return Element.ia32;
+                    }
+                    else if (a == x64)
+                    {
+                        return Element.x64;
+                    }
+
+                    return Element.arm64;
+                }
+                else if (t == linux)
+                {
+                    if (a == x64)
+                    {
+                        return Element.x86_64;
+                    }
+                    else if (a == arm)
+                    {
+                        return Element.arm;
+                    }
+
+                    return Element.arm64;
+                }
+
+                // if (t == darwin && b == archive)
+                // {
+                    // Which version being the macOS version...
+                    return Element.versionMacOS;
+                // }
             }
         }
 
-        private static IDictionary<Target, IEnumerable<Architecture>> _targetArchitectures;
-
-        private static IDictionary<Target, IEnumerable<Build>> _targetBuilds;
-
-        public static IDictionary<Target, IEnumerable<Architecture>> TargetArchitectures => _targetArchitectures ?? (
-            _targetArchitectures = Range(win32, linux, darwin).ToDictionary(x => x, GetArchitectures)
-        );
-
-        public static IDictionary<Target, IEnumerable<Build>> TargetBuilds => _targetBuilds ?? (
-            _targetBuilds = Range(win32, linux, darwin).ToDictionary(x => x, GetBuilds)
-        );
-
-        private (Target target, Architecture? arch, Build? build) Elements { get; }
-
-        private Target Target => this.Elements.target;
-
-        private Architecture? Arch => this.Elements.arch;
-
-        private Build? Build => this.Elements.build;
-
-        private Version Version { get; set; }
-
-        public bool IsLatest{ get; set; }
-
-        public string DestinationPath { get; }
-
-        public DownloadDescriptor((Target target, Architecture? arch, Build? build) elements)
+        internal (string url, string path, string fileName) Render(Versions versions)
         {
-            this.Elements = elements;
+            // TODO: TBD: url Uri parts...
+            var url = string.Empty;
 
-            if (this.Target == darwin)
+            string RenderPathElement(Element element)
             {
-                this.Elements = (this.Target, null, null);
+                // TODO: TBD: which if this is the case, then we can refactor this to a simple ternary operator... (x ? y : z)
+                // This one is kind of a special use case.
+                if (element == Element.versionMacOS)
+                {
+                    return $"{Versions.macOS}+";
+                }
+
+                // We should be able to render every other element.
+                return $"{element}";
             }
+// renderedVersionOrLatest
+            var path = Range(versions.renderedVersion).Concat(this._path.ToList().Select(RenderPathElement)).CombinePath();
+
+            string RenderFileName(char delim)
+            {
+                string RenderConventionOrExtension(Element element)
+                {
+                    // TODO: TBD: ditto likewise the path elements...
+                    if (element == Element.version)
+                    {
+                        return $"{versions.version}";
+                    }
+
+                    return $"{element}";
+                }
+
+                var extensions = this._extensions.ToList().Select(RenderConventionOrExtension).ToArray();
+
+                var fileName = string.Join($"{delim}", this._convention.ToList().Select(RenderConventionOrExtension));
+
+                return string.Join($"{dot}", Range(fileName).Concat(extensions));
+            }
+
+            var fileName = RenderFileName(this.Delim);
+
+
+            // TODO: TBD: format it here...
+            return (url, path, fileName);
         }
     }
 
@@ -1562,8 +1842,6 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
         internal static IEnumerable<string> RenderNameObjectPairs(params (string name, object value)[] pairs)
         {
-            const char colon = ':';
-
             foreach (var (name, value) in pairs)
             {
                 yield return string.Join($"{colon} ", name, RenderObjectOrNull(value));
@@ -1728,5 +2006,8 @@ namespace System.IO
     {
         public static bool FileExists(this string path) =>
             path != null && File.Exists(path);
+
+        public static string CombinePath(this IEnumerable<string> parts) =>
+            Path.Combine(parts.ToArray());
     }
 }
