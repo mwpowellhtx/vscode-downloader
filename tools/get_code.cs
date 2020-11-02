@@ -1225,15 +1225,25 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
         private void OnProcessDownloadSpec((Target t, Build b, Architecture? a) spec)
         {
             var op = this.CurrentOptions;
+
             var (t, b, a) = spec;
 
             if (op.IsDry)
             {
                 const char comma = ',';
-                var rendered = RenderNameObjectPairs((nameof(t), (object)t), (nameof(b), (object)b), (nameof(a), (object)a));
-                this.Writer.WriteLine($"{nameof(Dry)}: {nameof(OnProcessDownloadSpec)}({string.Join($"{comma} ", rendered)})");
+                const string parens = "()";
+
+                var renderedArgs = string.Join($"{comma} ", RenderNameObjectPairs(
+                    (nameof(t), (object)t)
+                    , (nameof(b), (object)b)
+                    , (nameof(a), (object)a))
+                );
+
+                this.Writer.WriteLine($"{nameof(OnProcessDownloadSpec)}{string.Join(renderedArgs, parens.ToArray())}");
+
                 return;
             }
+
         }
 
         public void ProcessDownloadSpecs()
@@ -1245,10 +1255,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 this.Writer.WriteLine($"{nameof(Dry)}: {nameof(ProcessDownloadSpecs)}(), {nameof(op)}.{nameof(op.SelectedDownloadSpecs)}.{nameof(IList.Count)}: {op.SelectedDownloadSpecs.Count()}");
             }
 
-            foreach (var spec in op.SelectedDownloadSpecs)
-            {
-                this.OnProcessDownloadSpec(spec);
-            }
+            op.SelectedDownloadSpecs.ToList().ForEach(OnProcessDownloadSpec);
         }
 
 #if false // Temporarily disabled while working out the front of the process
