@@ -31,6 +31,7 @@ namespace Code.Downloader
     using static AssetManager;
     using static Chars;
     using static DownloadStrategy;
+    using S = StringExtensions;
 
     /// <summary>
     /// Defines many commonly used delimiters and such for use throughout.
@@ -65,7 +66,7 @@ namespace Code.Downloader
         /// <summary>
         /// &apos;/&apos;
         /// </summary>
-        public const char forwardSlash = '/';
+        public const char slash = '/';
 
         /// <summary>
         /// &apos;_&apos;
@@ -91,6 +92,16 @@ namespace Code.Downloader
         /// &quot;<>&quot;
         /// </summary>
         public const string angleBrackets = "<>";
+
+        /// <summary>
+        /// &quot;http&quot;
+        /// </summary>
+        public const string http = nameof(http);
+
+        /// <summary>
+        /// &quot;https&quot;
+        /// </summary>
+        public const string https = nameof(https);
     }
 
     public enum CodeVersion
@@ -309,8 +320,18 @@ namespace Code.Downloader
         Setup,
         darwin,
         win32,
+
+        /// <summary>
+        /// Not meaning <see cref="Insider.insider"/>, but rather a placeholder for either
+        /// of the <see cref="Insider"/> bits.
+        /// </summary>
         insider,
-        stable,
+
+        /// <summary>
+        /// Same as <see cref="insider"/> except we accept <see cref="Insider.insider"/> only,
+        /// or <c>null</c> when it was not the case.
+        /// </summary>
+        insiderOrNull,
         snap,
         ia32,
         x86,
@@ -329,8 +350,21 @@ namespace Code.Downloader
         rpm,
         tar,
         gz,
+
+        /// <summary>
+        /// Rendered &quot;version&quot; or &quot;latest&quot;, sometimes also
+        /// &quot;insider&quot;, depending on the context, whether in terms of
+        /// <em>Url</em> or <em>file name</em> rendering.
+        /// </summary>
         version,
+
+        /// <summary>
+        /// Represents a different version, the actual <see cref="Versions.macOS"/>.
+        /// </summary>
         versionMacOS,
+        update,
+        visualstudio,
+        com
     }
 
     internal class AssetManager
@@ -1187,20 +1221,19 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 // win32+archive+x86+version => VSCode-win32-ia32-major.minor.patch.zip
                 yield return Strategy(op, 2, (win32, system, x86))
                     .Directories(Element.Windows, Element.x86).Extensions(Element.exe)
-                    .Stable(Element.VSCode, Element.Setup, Element.ia32, Element.version)
-                    .Insider(Element.VSCode, Element.Setup, Element.ia32, Element.version, Element.insider)
+                    // TODO: TBD: reduce the number of dictionaries, collections...
+                    // TODO: TBD: and refocus in algo terms...
+                    .Convention(Element.VSCode, Element.Setup, Element.ia32, Element.version, Element.insiderOrNull)
                     ;
 
                 yield return Strategy(op, 3, (win32, user, x86))
                     .Directories(Element.Windows, Element.x86).Extensions(Element.exe)
-                    .Stable(Element.VSCode, Element.User, Element.Setup, Element.ia32, Element.version)
-                    .Insider(Element.VSCode, Element.User, Element.Setup, Element.ia32, Element.version, Element.insider)
+                    .Convention(Element.VSCode, Element.User, Element.Setup, Element.ia32, Element.version, Element.insiderOrNull)
                     ;
 
                 yield return Strategy(op, (win32, archive, x86))
                     .Directories(Element.Windows, Element.x86).Extensions(Element.zip)
-                    .Stable(Element.VSCode, Element.win32, Element.ia32, Element.version)
-                    .Insider(Element.VSCode, Element.win32, Element.ia32, Element.version, Element.insider)
+                    .Convention(Element.VSCode, Element.win32, Element.ia32, Element.version, Element.insiderOrNull)
                     ;
 
                 // win32+system+x64+version => VSCodeSetup-x64-major.minor.patch.exe
@@ -1208,20 +1241,17 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 // win32+archive+x64+version => VSCode-win32-x64-major.minor.patch.zip
                 yield return Strategy(op, 2, (win32, system, x64))
                     .Directories(Element.Windows, Element.x64).Extensions(Element.exe)
-                    .Stable(Element.VSCode, Element.Setup, Element.x64, Element.version)
-                    .Insider(Element.VSCode, Element.Setup, Element.x64, Element.version, Element.insider)
+                    .Convention(Element.VSCode, Element.Setup, Element.x64, Element.version, Element.insiderOrNull)
                     ;
 
                 yield return Strategy(op, 3, (win32, user, x64))
                     .Directories(Element.Windows, Element.x64).Extensions(Element.exe)
-                    .Stable(Element.VSCode, Element.User, Element.Setup, Element.x64, Element.version)
-                    .Insider(Element.VSCode, Element.User, Element.Setup, Element.x64, Element.version, Element.insider)
+                    .Convention(Element.VSCode, Element.User, Element.Setup, Element.x64, Element.version, Element.insiderOrNull)
                     ;
 
                 yield return Strategy(op, (win32, archive, x64))
                     .Directories(Element.Windows, Element.x64).Extensions(Element.zip)
-                    .Stable(Element.VSCode, Element.win32, Element.x64, Element.version)
-                    .Insider(Element.VSCode, Element.win32, Element.x64, Element.version, Element.insider)
+                    .Convention(Element.VSCode, Element.win32, Element.x64, Element.version, Element.insiderOrNull)
                     ;
 
                 // win32+system+arm64+version => VSCodeSetup-arm64-major.minor.patch.exe
@@ -1229,20 +1259,17 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 // win32+archive+arm64+version => VSCode-win32-arm64-major.minor.patch.zip
                 yield return Strategy(op, 2, (win32, system, arm64))
                     .Directories(Element.Windows, Element.arm64).Extensions(Element.exe)
-                    .Stable(Element.VSCode, Element.Setup, Element.arm64, Element.version)
-                    .Insider(Element.VSCode, Element.Setup, Element.arm64, Element.version, Element.insider)
+                    .Convention(Element.VSCode, Element.Setup, Element.arm64, Element.version, Element.insiderOrNull)
                     ;
 
                 yield return Strategy(op, 3, (win32, user, arm64))
                     .Directories(Element.Windows, Element.arm64).Extensions(Element.exe)
-                    .Stable(Element.VSCode, Element.User, Element.Setup, Element.arm64, Element.version)
-                    .Insider(Element.VSCode, Element.User, Element.Setup, Element.arm64, Element.version, Element.insider)
+                    .Convention(Element.VSCode, Element.User, Element.Setup, Element.arm64, Element.version, Element.insiderOrNull)
                     ;
 
                 yield return Strategy(op, (win32, archive, arm64))
                     .Directories(Element.Windows, Element.arm64).Extensions(Element.zip)
-                    .Stable(Element.VSCode, Element.win32, Element.version)
-                    .Insider(Element.VSCode, Element.win32, Element.version, Element.insider)
+                    .Convention(Element.VSCode, Element.win32, Element.version, Element.insiderOrNull)
                     ;
 
                 // linux+deb+x64+version => code_major.minor.version-stable_amd64.deb
@@ -1250,20 +1277,17 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 // linux+archive+x64+version => code-major.minor.version-x64-stable.tar.gz
                 yield return Strategy(op, (linux, deb, x64))
                     .Directories(Element.Linux, Element.x64).Extensions(Element.deb)
-                    .Stable(underscore, Element.code, Element.version, Element.stable, Element.amd64)
-                    .Insider(underscore, Element.code, Element.version, Element.insider, Element.amd64)
+                    .Convention(underscore, Element.code, Element.version, Element.amd64)
                     ;
 
                 yield return Strategy(op, (linux, rpm, x64))
                     .Directories(Element.Linux, Element.x64).Extensions(Element.rpm)
-                    .Stable(underscore, Element.code, Element.version, Element.stable, Element.el7, Element.x86_64)
-                    .Insider(underscore, Element.code, Element.version, Element.insider, Element.el7, Element.x86_64)
+                    .Convention(underscore, Element.code, Element.version, Element.insider, Element.x86_64)
                     ;
 
                 yield return Strategy(op, (linux, archive, x64))
                     .Directories(Element.Linux, Element.x64).Extensions(Element.tar, Element.gz)
-                    .Stable(underscore, Element.code, Element.version, Element.x64, Element.stable)
-                    .Insider(underscore, Element.code, Element.version, Element.x64, Element.insider)
+                    .Convention(underscore, Element.code, Element.version, Element.x64, Element.insider)
                     ;
 
                 // linux+deb+arm+version => code_major.minor.version-stable_armhf.deb
@@ -1271,20 +1295,17 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 // linux+archive+arm+version => code-major.minor.version-armhf-stable.tar.gz
                 yield return Strategy(op, (linux, deb, arm))
                     .Directories(Element.Linux, Element.arm).Extensions(Element.deb)
-                    .Stable(underscore, Element.code, Element.version, Element.stable, Element.armhf)
-                    .Insider(underscore, Element.code, Element.version, Element.insider, Element.armhf)
+                    .Convention(underscore, Element.code, Element.version, Element.armhf)
                     ;
 
                 yield return Strategy(op, (linux, rpm, arm))
                     .Directories(Element.Linux, Element.arm).Extensions(Element.rpm)
-                    .Stable(underscore, Element.code, Element.version, Element.stable, Element.el7, Element.armv7hl)
-                    .Insider(underscore, Element.code, Element.version, Element.insider, Element.el7, Element.armv7hl)
+                    .Convention(underscore, Element.code, Element.version, Element.insider, Element.el7, Element.armv7hl)
                     ;
 
                 yield return Strategy(op, (linux, archive, arm))
                     .Directories(Element.Linux, Element.arm).Extensions(Element.tar, Element.gz)
-                    .Stable(underscore, Element.code, Element.version, Element.armhf, Element.stable)
-                    .Insider(underscore, Element.code, Element.version, Element.armhf, Element.insider)
+                    .Convention(underscore, Element.code, Element.version, Element.armhf, Element.insider)
                     ;
 
                 // linux+deb+arm64+version => code_major.minor.version-stable_arm64.deb
@@ -1292,35 +1313,30 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 // linux+archive+arm64+version => code-major.minor.version-arm64-stable.tar.gz
                 yield return Strategy(op, (linux, deb, arm64))
                     .Directories(Element.Linux, Element.arm64).Extensions(Element.deb)
-                    .Stable(underscore, Element.code, Element.version, Element.stable, Element.arm64)
-                    .Insider(underscore, Element.code, Element.version, Element.insider, Element.arm64)
+                    .Convention(underscore, Element.code, Element.version, Element.insider, Element.arm64)
                     ;
 
                 yield return Strategy(op, (linux, rpm, arm64))
                     .Directories(Element.Linux, Element.arm64).Extensions(Element.rpm)
-                    .Stable(underscore, Element.code, Element.version, Element.stable, Element.el7, Element.aarch64)
-                    .Insider(underscore, Element.code, Element.version, Element.insider, Element.el7, Element.aarch64)
+                    .Convention(underscore, Element.code, Element.version, Element.insider, Element.el7, Element.aarch64)
                     ;
 
                 yield return Strategy(op, (linux, archive, arm64))
                     .Directories(Element.Linux, Element.arm64).Extensions(Element.tar, Element.gz)
-                    .Stable(underscore, Element.code, Element.version, Element.arm64, Element.stable)
-                    .Insider(underscore, Element.code, Element.version, Element.arm64, Element.insider)
+                    .Convention(underscore, Element.code, Element.version, Element.arm64, Element.insider)
                     ;
 
                 // linux+snap => code-stable-major.minor.patch.snap
                 // linux+archive+snap => code-stable-major.minor.patch.snap
                 yield return Strategy(op, (linux, snap, null))
                     .Directories(Element.Linux, Element.snap).Extensions(Element.snap)
-                    .Stable(Element.code, Element.stable, Element.version)
-                    .Insider(Element.code, Element.insider, Element.version)
+                    .Convention(Element.code, Element.insider, Element.version)
                     ;
 
                 // darwin+version+stable => VSCode-darwin-major.minor.patch-stable.zip
                 yield return Strategy(op, (darwin, archive, null))
                     .Directories(Element.macOS, Element.versionMacOS).Extensions(Element.zip)
-                    .Stable(Element.VSCode, Element.darwin, Element.version, Element.stable)
-                    .Insider(Element.VSCode, Element.darwin, Element.version, Element.insider)
+                    .Convention(Element.VSCode, Element.darwin, Element.version, Element.insider)
                     ;
             }
 
@@ -1346,15 +1362,10 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
         );
 
         /// <summary>
-        ///
+        /// Returns whether there are Any <see cref="SelectedSpecifications"/> items.
         /// </summary>
         /// <returns></returns>
-        internal bool TryFilterSpecifications()
-        {
-            var op = this.CurrentOptions;
-            var currentSpecs = this.SelectedSpecifications;
-            return currentSpecs.Any();
-        }
+        internal bool TryFilterSpecifications() => this.SelectedSpecifications.Any();
 
         /// <summary>
         /// Tries to Invoke the <see cref="Assets.Wget"/> asset given the <paramref name="uri"/>,
@@ -1404,7 +1415,29 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 : $"{this.CurrentVersions.version}"
         );
 
-        private void OnProcessDownloadSpec((Target t, Build b, Architecture? a) spec)
+        private void OnProcessScenario((string url, string path, string fileName) scenario)
+        {
+            var op = this.CurrentOptions;
+
+            var (url, path, fileName) = scenario;
+
+            if (op.IsDry)
+            {
+                // TODO: TBD: consider refactoring the A() and Q() functions as internal static methods...
+                var report = string.Join($"{comma} ", RenderNameObjectPairs(
+                        (nameof(url), $"'{url}'")
+                        , (nameof(path), $"'{path}'")
+                        , (nameof(fileName), $"'{fileName}'")
+                    )
+                );
+
+                this.Writer.WriteLine($"{nameof(this.OnProcessScenario)}{string.Join(string.Join(report, parens.ToArray()), parens.ToArray())}");
+            }
+
+            // TODO: TBD: connect the dots on the actual processing here...
+        }
+
+        private void OnProcessSpecification((Target t, Build b, Architecture? a) spec)
         {
             var op = this.CurrentOptions;
 
@@ -1413,17 +1446,16 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             if (op.IsDry)
             {
                 var renderedArgs = string.Join($"{comma} ", RenderNameObjectPairs(
-                    (nameof(t), (object)t)
-                    , (nameof(b), (object)b)
-                    , (nameof(a), (object)a))
+                        (nameof(t), (object)t)
+                        , (nameof(b), (object)b)
+                        , (nameof(a), (object)a)
+                    )
                 );
 
-                this.Writer.WriteLine($"{nameof(this.OnProcessDownloadSpec)}{string.Join(renderedArgs, parens.ToArray())}");
-
-                return;
+                this.Writer.WriteLine($"{nameof(this.OnProcessSpecification)}{string.Join(renderedArgs, parens.ToArray())}");
             }
 
-            // TODO: TBD: this one is a work in progress...
+            this.OnProcessScenario(this.Strategies[spec].Render(op.Versions));
         }
 
         public void ProcessDownloadSpecs()
@@ -1432,10 +1464,10 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
             if (op.IsDry)
             {
-                this.Writer.WriteLine($"{nameof(Dry)}: {nameof(ProcessDownloadSpecs)}(), {nameof(op)}.{nameof(this.SelectedSpecifications)}.{nameof(IList.Count)}: {this.SelectedSpecifications.Count()}");
+                this.Writer.WriteLine($"{nameof(Dry)}: {nameof(ProcessDownloadSpecs)}{parens}, {nameof(op)}.{nameof(this.SelectedSpecifications)}.{nameof(IList.Count)}: {this.SelectedSpecifications.Count()}");
             }
 
-            this.SelectedSpecifications.ToList().ForEach(this.OnProcessDownloadSpec);
+            this.SelectedSpecifications.ToList().ForEach(this.OnProcessSpecification);
         }
 
 #if false // Temporarily disabled while working out the front of the process
@@ -1485,7 +1517,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             }
 
             string RenderAssertOrAssetInsiderPhrase(params string[] parts) => string.Join(
-                "-", parts.Concat(this.InsiderParts).Where(x => !string.IsNullOrEmpty(x))
+                "-", parts.Concat(this.InsiderParts).Where(S.IsNotNullOrEmpty)
             );
 
             // TODO: TBD: can probable refactor the general case given a path, uri, and directory...
@@ -1663,8 +1695,29 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
         /// <see name="underscore"/>
         private char Delim { get; set; } = hyp;
 
-        private readonly IDictionary<Insider, IList<Element>> _conventions = Range(stable, Code.Downloader.Insider.insider)
-            .ToDictionary(key => key, x => (IList<Element>) Range<Element>().ToList());
+        /// <summary>
+        /// The base <see cref="_urls"/> elements.
+        /// </summary>
+        /// <see cref="Element.update"/>
+        /// <see cref="Element.code"/>
+        /// <see cref="Element.visualstudio"/>
+        /// <see cref="Element.com"/>
+        private static readonly IEnumerable<Element> _urlBase = Range(
+            Element.update, Element.code, Element.visualstudio, Element.com).ToArray();
+ 
+        /// <summary>
+        /// Urls, meaning the <see cref="slash"/> delimited segments of the download routing
+        /// path. The base address is always the same so we do not specify that outside of
+        /// the algorithm itself. As far as we can determine, each phrase <see cref="Element"/>
+        /// is delimited by <see cref="hyp"/>, whereas the root phrase is always delimited by
+        /// <see cref="dot"/>.
+        /// </summary>
+        private readonly ICollection<Element[]> _urls = Range<Element[]>().ToList();
+
+        /// <summary>
+        /// Conventions, as in file naming conventions.
+        /// </summary>
+        private readonly ICollection<Element> _conventions = Range<Element>().ToList();
 
         private DownloadStrategy AddElements(ICollection<Element> collection, params Element[] values)
         {
@@ -1687,57 +1740,34 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
         internal DownloadStrategy Extensions(params Element[] elements) => this.AddElements(this._extensions, elements);
 
         /// <summary>
-        /// Sets the <see cref="stable"/> Convention in a fluent manner, default
-        /// <see cref="Delim"/> <see cref="hyp"/>.
+        /// Establishes an Url pattern given the <paramref name="elements"/>.
         /// </summary>
         /// <param name="elements"></param>
         /// <returns></returns>
-        internal DownloadStrategy Stable(params Element[] elements) => this.Convention(stable, hyp, elements);
-
-        /// <summary>
-        /// Sets the <see cref="stable"/> Convention in a fluent manner.
-        /// </summary>
-        /// <param name="delim"></param>
-        /// <param name="elements"></param>
-        /// <returns></returns>
-        internal DownloadStrategy Stable(char delim, params Element[] elements) => this.Convention(stable, delim, elements);
-
-        /// <summary>
-        /// Sets the <see cref="Insider.insider"/> Convention in a fluent manner, default
-        /// <see cref="Delim"/> <see cref="hyp"/>.
-        /// </summary>
-        /// <param name="elements"></param>
-        /// <returns></returns>
-        internal DownloadStrategy Insider(params Element[] elements) => this.Convention(Code.Downloader.Insider.insider, hyp, elements);
-
-        /// <summary>
-        /// Sets the <see cref="Insider.insider"/> Convention in a fluent manner.
-        /// </summary>
-        /// <param name="delim"></param>
-        /// <param name="elements"></param>
-        /// <returns></returns>
-        internal DownloadStrategy Insider(char delim, params Element[] elements) => this.Convention(Code.Downloader.Insider.insider, delim, elements);
+        internal DownloadStrategy Url(params IEnumerable<Element>[] elements)
+        {
+            elements.Select(x => x.ToArray()).ToList().ForEach(this._urls.Add);
+            return this;
+        }
 
         /// <summary>
         /// Sets the Convention in a fluent manner, default <see cref="Delim"/>
         /// <see cref="hyp"/>.
         /// </summary>
-        /// <param name="insider"></param>
         /// <param name="elements"></param>
         /// <returns></returns>
-        private DownloadStrategy Convention(Insider insider, params Element[] elements) => this.Convention(insider, hyp, elements);
+        internal DownloadStrategy Convention(params Element[] elements) => this.Convention(hyp, elements);
 
         /// <summary>
         /// Sets the Convention in a fluent manner.
         /// </summary>
-        /// <param name="insider"></param>
         /// <param name="delim"></param>
         /// <param name="elements"></param>
         /// <returns></returns>
-        private DownloadStrategy Convention(Insider insider, char delim, params Element[] elements)
+        internal DownloadStrategy Convention(char delim, params Element[] elements)
         {
             this.Delim = delim;
-            return this.AddElements(this._conventions[insider], elements);
+            return this.AddElements(this._conventions, elements);
         }
 
         /// <summary>
@@ -1835,8 +1865,26 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
         {
             var op = this.CurrentOptions;
 
+            string OnRenderUrlElement(Element element)
+            {
+                // TODO: TBD: Element.version
+                // TODO: TBD: Element.insider
+                return $"{element}";
+            }
+
+            string OnRenderDelimitedDownloadUrlPhrase(char delim, params Element[] elements) =>
+                string.Join($"{delim}", elements.Select(OnRenderUrlElement));
+
+            string OnRenderDownloadUrlPhrase(params Element[] elements) =>
+                OnRenderDelimitedDownloadUrlPhrase(hyp, elements);
+
+            string RenderDownloadUrl() =>
+                string.Join($"{colon}{slash}{slash}", https
+                    , string.Join($"{slash}", Range(OnRenderDelimitedDownloadUrlPhrase(dot, _urlBase.ToArray()))
+                        .Concat(this._urls.Select(OnRenderDownloadUrlPhrase))));
+
             // TODO: TBD: url Uri parts...
-            var url = string.Empty;
+            var url = RenderDownloadUrl();
 
             string RenderPathElement(Element element)
             {
@@ -1857,18 +1905,19 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             {
                 string RenderConventionOrExtension(Element element)
                 {
-                    // TODO: TBD: ditto likewise the path elements...
-                    if (element == Element.version)
+                    switch (element)
                     {
-                        return $"{versions.version}";
+                        case Element.insider: return $"{op.insider}";
+                        case Element.insiderOrNull: return op.insider == Insider.stable ? (string)null : $"{op.insider}";
+                        // TODO: TBD: ditto likewise the path elements...
+                        case Element.version: return $"{versions.version}";
+                        default: return $"{element}";
                     }
-
-                    return $"{element}";
                 }
 
-                var extensions = this._extensions.ToList().Select(RenderConventionOrExtension).ToArray();
+                var extensions = this._extensions.ToList().Select(RenderConventionOrExtension).Where(S.IsNotNullOrEmpty).ToArray();
 
-                var renderedConvention = this._conventions[op.insider].Select(RenderConventionOrExtension).ToArray();
+                var renderedConvention = this._conventions.Select(RenderConventionOrExtension).Where(S.IsNotNullOrEmpty).ToArray();
 
                 var fileName = prefixCount < 2
                     ? string.Join($"{delim}", renderedConvention)
@@ -1879,7 +1928,6 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             }
 
             var fileName = RenderFileName(this.PrefixCount, this.Delim);
-
 
             // TODO: TBD: format it here...
             return (url, path, fileName);
@@ -2005,6 +2053,14 @@ namespace System
 
     internal static class StringExtensions
     {
+        // TODO: TBD: I'm not sure how an extension method cannot be seen as a "normal" static method...
+        /// <summary>
+        /// Returns whether <paramref name="s"/> <see cref="string.IsNullOrEmpty"/>.
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
+        public static bool IsNotNullOrEmpty(this string s) => !string.IsNullOrEmpty(s);
+
         public static string RenderStringOrNull(this string s)
         {
             const string @null = nameof(@null);
