@@ -560,7 +560,7 @@ namespace Code.Downloader
         internal bool show { get; set; }
 
         private System.Version _version;
-        private CodeVersion _selector = CodeVersion.latest;
+        private CodeVersion _selector = latest;
 
         /// <summary>
         /// Gets or Sets the version.
@@ -622,8 +622,7 @@ namespace Code.Downloader
         /// <see cref="CodeVersion.latest"/>
         /// <see cref="version"/>
         /// <see cref="selector"/>
-        internal string renderedVersionOrLatest => selector == CodeVersion.latest
-            ? nameof(CodeVersion.latest) : this.renderedVersion;
+        internal string renderedVersionOrLatest => this.selector == latest ? nameof(latest) : this.renderedVersion;
 
         /// <summary>
         /// Resets the Versions to default state.
@@ -1249,7 +1248,6 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                     // TODO: TBD: reduce the number of dictionaries, collections...
                     // TODO: TBD: and refocus in algo terms...
                     .Convention(Element.VSCode, Element.Setup, Element.ia32, Element.version, Element.insiderOrNull)
-                    // https://update.code.visualstudio.com/1.51.0-insider/win32/insider
                     // https://update.code.visualstudio.com/1.50.0/win32/stable
                     .Url(Range(Element.win32))
                     ;
@@ -1257,14 +1255,14 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 yield return Strategy(op, 3, (win32, user, x86))
                     .Directories(Element.Windows, Element.x86).Extensions(Element.exe)
                     .Convention(Element.VSCode, Element.User, Element.Setup, Element.ia32, Element.version, Element.insiderOrNull)
-                    // https://update.code.visualstudio.com/1.51.0-insider/win32-x64-user/insider
-                    // https://update.code.visualstudio.com/1.50.0/win32-x64-user/stable
+                    // https://update.code.visualstudio.com/1.50.0/win32-user/stable
                     .Url(Range(Element.win32, Element.user))
                     ;
 
                 yield return Strategy(op, (win32, archive, x86))
                     .Directories(Element.Windows, Element.x86).Extensions(Element.zip)
                     .Convention(Element.VSCode, Element.win32, Element.ia32, Element.version, Element.insiderOrNull)
+                    // https://update.code.visualstudio.com/1.50.0/win32-archive/stable
                     .Url(Range(Element.win32, Element.archive))
                     ;
 
@@ -1274,16 +1272,22 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 yield return Strategy(op, 2, (win32, system, x64))
                     .Directories(Element.Windows, Element.x64).Extensions(Element.exe)
                     .Convention(Element.VSCode, Element.Setup, Element.x64, Element.version, Element.insiderOrNull)
+                    // https://update.code.visualstudio.com/1.50.0/win32-x64/stable
+                    .Url(Range(Element.win32, Element.x64))
                     ;
 
                 yield return Strategy(op, 3, (win32, user, x64))
                     .Directories(Element.Windows, Element.x64).Extensions(Element.exe)
                     .Convention(Element.VSCode, Element.User, Element.Setup, Element.x64, Element.version, Element.insiderOrNull)
+                    // https://update.code.visualstudio.com/1.50.0/win32-x64-user/stable
+                    .Url(Range(Element.win32, Element.x64, Element.user))
                     ;
 
                 yield return Strategy(op, (win32, archive, x64))
                     .Directories(Element.Windows, Element.x64).Extensions(Element.zip)
                     .Convention(Element.VSCode, Element.win32, Element.x64, Element.version, Element.insiderOrNull)
+                    // https://update.code.visualstudio.com/1.50.0/win32-x64-archive/stable
+                    .Url(Range(Element.win32, Element.x64, Element.archive))
                     ;
 
                 // win32+system+arm64+version => VSCodeSetup-arm64-major.minor.patch.exe
@@ -1931,8 +1935,15 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 switch (element)
                 {
                     case Element.insider: return $"{op.insider}";
-                    case Element.insiderOrNull: return op.insider != Insider.insider ? (string)null : $"{op.insider}";
+
+                    case Element.insiderOrNull:
+                        /* Insider should appear when: --insider && --code-version
+                         * Insider should NOT appear when: --latest (under ANY circumstances) */
+                        return (!(op.Versions.selector == latest || op.insider == Insider.insider)
+                            || op.Versions.selector == latest) ? (string)null : $"{op.insider}";
+
                     case Element.version: return op.Versions.renderedVersionOrLatest;
+
                     default: return $"{element}";
                 }
             }
