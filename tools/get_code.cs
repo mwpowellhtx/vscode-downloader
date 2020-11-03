@@ -1850,10 +1850,10 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 // We should be able to render every other element.
                 return $"{element}";
             }
-// renderedVersionOrLatest
+
             var path = Range(versions.renderedVersion).Concat(this._path.ToList().Select(RenderPathElement)).CombinePath();
 
-            string RenderFileName(char delim)
+            string RenderFileName(int prefixCount, char delim)
             {
                 string RenderConventionOrExtension(Element element)
                 {
@@ -1868,12 +1868,17 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
                 var extensions = this._extensions.ToList().Select(RenderConventionOrExtension).ToArray();
 
-                var fileName = string.Join($"{delim}", this._conventions[op.insider].Select(RenderConventionOrExtension));
+                var renderedConvention = this._conventions[op.insider].Select(RenderConventionOrExtension).ToArray();
+
+                var fileName = prefixCount < 2
+                    ? string.Join($"{delim}", renderedConvention)
+                    : string.Join($"{delim}", Range(renderedConvention.Take(prefixCount)
+                        .Aggregate(string.Empty, (g, x) => g + x)).Concat(renderedConvention.Skip(prefixCount)));
 
                 return string.Join($"{dot}", Range(fileName).Concat(extensions));
             }
 
-            var fileName = RenderFileName(this.Delim);
+            var fileName = RenderFileName(this.PrefixCount, this.Delim);
 
 
             // TODO: TBD: format it here...
