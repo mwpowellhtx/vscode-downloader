@@ -31,7 +31,7 @@ namespace Code.Downloader
     using static AssetManager;
     using static Chars;
     using static DownloadStrategy;
-    using S = StringExtensions;
+    using static StringExtensions;
 
     /// <summary>
     /// Defines many commonly used delimiters and such for use throughout.
@@ -320,6 +320,8 @@ namespace Code.Downloader
         Setup,
         darwin,
         win32,
+        user,
+        archive,
 
         /// <summary>
         /// Not meaning <see cref="Insider.insider"/>, but rather a placeholder for either
@@ -485,7 +487,7 @@ namespace Code.Downloader
         /// <c>.zip</c>. <see cref="win32"/> filename <see cref="Architecture"/> is <c>ia32</c>.
         /// <see cref="linux"/> <see cref="x64"/> <see cref="Architecture"/> is <c>amd64</c>.
         /// </summary>
-        /// <see cref="https://github.com/microsoft/vscode/issues/109329">Automating the downloads with help from repeatable links</see>
+        /// <see cref="!:https://github.com/microsoft/vscode/issues/109329">Automating the downloads with help from repeatable links</see>
         /// <see cref="!:https://update.code.visualstudio.com/latest/win32-x64-user/stable"/>
         /// <see cref="!:https://update.code.visualstudio.com/latest/win32-x64-user/insider"/>
         /// <see cref="!:https://update.code.visualstudio.com/major.minor.patch/win32-x64-user/stable"/>
@@ -558,14 +560,35 @@ namespace Code.Downloader
         internal bool show { get; set; }
 
         private System.Version _version;
+        private CodeVersion _selector = CodeVersion.latest;
 
+        /// <summary>
+        /// Gets or Sets the version.
+        /// </summary>
+        /// <see cref="selector"/>
         public System.Version version
         {
-            get => this.selector == latest ? latestVersion : (_version ?? latestVersion);
-            set => _version = value;
+            get => this.selector == latest ? latestVersion : (this._version ?? latestVersion);
+            set
+            {
+                this._version = value;
+                this.selector = this._version == null ? latest : CodeVersion.version;
+            }
         }
 
-        public CodeVersion selector { get; set; } = CodeVersion.latest;
+        /// <summary>
+        /// Gets or Sets the selector.
+        /// </summary>
+        /// <see cref="version"/>
+        public CodeVersion selector
+        {
+            get => this._selector;
+            set
+            {
+                this._selector = value;
+                this._version = this._selector == latest ? null : this._version;
+            }
+        }
 
         internal static System.Version macOS { get; } = Version.Parse("10.10");
 
@@ -600,8 +623,7 @@ namespace Code.Downloader
         /// <see cref="version"/>
         /// <see cref="selector"/>
         internal string renderedVersionOrLatest => selector == CodeVersion.latest
-            ? nameof(CodeVersion.latest)
-            : $"{version}";
+            ? nameof(CodeVersion.latest) : this.renderedVersion;
 
         /// <summary>
         /// Resets the Versions to default state.
@@ -1216,6 +1238,9 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             // TODO: TBD: add capability for different conventions, stable, insider, etc...
             IEnumerable<DownloadStrategy> GetStrategies(OptionsParser op)
             {
+                // Helper method to assist with the shorthand.
+                IEnumerable<T[]> ArrayRange<T>(IEnumerable<T>[] segments) => segments.Select(x => x.ToArray());
+
                 // win32+system+x86+version => VSCodeUserSetup-ia32-major.minor.patch.exe
                 // win32+user+x86+version => VSCodeSetup-ia32-major.minor.patch.exe
                 // win32+archive+x86+version => VSCode-win32-ia32-major.minor.patch.zip
@@ -1224,16 +1249,23 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                     // TODO: TBD: reduce the number of dictionaries, collections...
                     // TODO: TBD: and refocus in algo terms...
                     .Convention(Element.VSCode, Element.Setup, Element.ia32, Element.version, Element.insiderOrNull)
+                    // https://update.code.visualstudio.com/1.51.0-insider/win32/insider
+                    // https://update.code.visualstudio.com/1.50.0/win32/stable
+                    .Url(Range(Element.win32))
                     ;
 
                 yield return Strategy(op, 3, (win32, user, x86))
                     .Directories(Element.Windows, Element.x86).Extensions(Element.exe)
                     .Convention(Element.VSCode, Element.User, Element.Setup, Element.ia32, Element.version, Element.insiderOrNull)
+                    // https://update.code.visualstudio.com/1.51.0-insider/win32-x64-user/insider
+                    // https://update.code.visualstudio.com/1.50.0/win32-x64-user/stable
+                    .Url(Range(Element.win32, Element.user))
                     ;
 
                 yield return Strategy(op, (win32, archive, x86))
                     .Directories(Element.Windows, Element.x86).Extensions(Element.zip)
                     .Convention(Element.VSCode, Element.win32, Element.ia32, Element.version, Element.insiderOrNull)
+                    .Url(Range(Element.win32, Element.archive))
                     ;
 
                 // win32+system+x64+version => VSCodeSetup-x64-major.minor.patch.exe
@@ -1517,7 +1549,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             }
 
             string RenderAssertOrAssetInsiderPhrase(params string[] parts) => string.Join(
-                "-", parts.Concat(this.InsiderParts).Where(S.IsNotNullOrEmpty)
+                $"{hyp}", parts.Concat(this.InsiderParts).Where(IsNotNullOrEmpty)
             );
 
             // TODO: TBD: can probable refactor the general case given a path, uri, and directory...
@@ -1712,7 +1744,12 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
         /// is delimited by <see cref="hyp"/>, whereas the root phrase is always delimited by
         /// <see cref="dot"/>.
         /// </summary>
-        private readonly ICollection<Element[]> _urls = Range<Element[]>().ToList();
+        /// <remarks>Algo wise and by convention, we know the default values to be true. Which
+        /// allows the strategy specifications to focus on the targets, builds, and architectures
+        /// only.</remarks>
+        private readonly IList<Element[]> _urls = Range(
+            Range(Element.version, Element.insiderOrNull)
+            , Range(Element.insider)).Select(x => x.ToArray()).ToList();
 
         /// <summary>
         /// Conventions, as in file naming conventions.
@@ -1740,13 +1777,36 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
         internal DownloadStrategy Extensions(params Element[] elements) => this.AddElements(this._extensions, elements);
 
         /// <summary>
-        /// Establishes an Url pattern given the <paramref name="elements"/>.
+        /// Establishes a specified Url pattern given the <paramref name="segments"/>,
+        /// potentially replacing the conventional segments.
         /// </summary>
-        /// <param name="elements"></param>
+        /// <param name="specify">Meaning to override the convention.</param>
+        /// <param name="segments">The <see cref="IEnumerable{T}"/> <see cref="Element"/>
+        /// Segments.</param>
         /// <returns></returns>
-        internal DownloadStrategy Url(params IEnumerable<Element>[] elements)
+        internal DownloadStrategy Url(bool specify, params IEnumerable<Element>[] segments)
         {
-            elements.Select(x => x.ToArray()).ToList().ForEach(this._urls.Add);
+            if (specify)
+            {
+                // Specify replaces the Strategy convention with the Elements.
+                this._urls.Clear();
+                segments.Select(x => x.ToArray()).ToList().ForEach(this._urls.Add);
+                return this;
+            }
+
+            return Url(segments);
+        }
+
+        /// <summary>
+        /// Establishes a conventional Url pattern given the <paramref name="segments"/>,
+        /// allowing for default opening <em>Version</em> and <em>Insider</em> segments.
+        /// </summary>
+        /// <param name="segments">The <see cref="IEnumerable{T}"/> <see cref="Element"/>
+        /// <returns></returns>
+        internal DownloadStrategy Url(params IEnumerable<Element>[] segments)
+        {
+            void Insert(Element[] item) => this._urls.Insert(this._urls.Count - 1, item);
+            segments.Select(x => x.ToArray()).ToList().ForEach(Insert);
             return this;
         }
 
@@ -1867,13 +1927,18 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
             string OnRenderUrlElement(Element element)
             {
-                // TODO: TBD: Element.version
-                // TODO: TBD: Element.insider
-                return $"{element}";
+                // TODO: TBD: fill in the blanks with any other bits...
+                switch (element)
+                {
+                    case Element.insider: return $"{op.insider}";
+                    case Element.insiderOrNull: return op.insider != Insider.insider ? (string)null : $"{op.insider}";
+                    case Element.version: return op.Versions.renderedVersionOrLatest;
+                    default: return $"{element}";
+                }
             }
 
             string OnRenderDelimitedDownloadUrlPhrase(char delim, params Element[] elements) =>
-                string.Join($"{delim}", elements.Select(OnRenderUrlElement));
+                string.Join($"{delim}", elements.Select(OnRenderUrlElement).Where(IsNotNullOrEmpty));
 
             string OnRenderDownloadUrlPhrase(params Element[] elements) =>
                 OnRenderDelimitedDownloadUrlPhrase(hyp, elements);
@@ -1915,9 +1980,9 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                     }
                 }
 
-                var extensions = this._extensions.ToList().Select(RenderConventionOrExtension).Where(S.IsNotNullOrEmpty).ToArray();
+                var extensions = this._extensions.ToList().Select(RenderConventionOrExtension).Where(IsNotNullOrEmpty).ToArray();
 
-                var renderedConvention = this._conventions.Select(RenderConventionOrExtension).Where(S.IsNotNullOrEmpty).ToArray();
+                var renderedConvention = this._conventions.Select(RenderConventionOrExtension).Where(IsNotNullOrEmpty).ToArray();
 
                 var fileName = prefixCount < 2
                     ? string.Join($"{delim}", renderedConvention)
@@ -2059,7 +2124,7 @@ namespace System
         /// </summary>
         /// <param name="s"></param>
         /// <returns></returns>
-        public static bool IsNotNullOrEmpty(this string s) => !string.IsNullOrEmpty(s);
+        public static bool IsNotNullOrEmpty(string s) => !string.IsNullOrEmpty(s);
 
         public static string RenderStringOrNull(this string s)
         {
