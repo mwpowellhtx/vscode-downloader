@@ -1343,18 +1343,27 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 // linux+rpm+arm+version => code-major.minor.version-stable.el7.armv7hl.rpm
                 // linux+archive+arm+version => code-major.minor.version-armhf-stable.tar.gz
                 yield return Strategy(op, (linux, deb, arm))
-                    .Directories(Element.Linux, Element.arm).Extensions(Element.deb)
-                    .Convention(underscore, Element.code, Element.version, Element.armhf)
+                    .Directories(Element.Linux, Element.arm)
+                    .Extensions(Element.el7, Element.armhf, Element.deb)
+                    .Convention(underscore, Element.code, Element.insider, Element.version)
+                    // https://update.code.visualstudio.com/major.minor.patch/linux-deb-armhf/stable
+                    .Url(Range(Element.linux, Element.deb, Element.armhf))
                     ;
 
                 yield return Strategy(op, (linux, rpm, arm))
-                    .Directories(Element.Linux, Element.arm).Extensions(Element.rpm)
-                    .Convention(underscore, Element.code, Element.version, Element.insider, Element.el7, Element.armv7hl)
+                    .Directories(Element.Linux, Element.arm)
+                    .Extensions(Element.el7, Element.armv7hl, Element.rpm)
+                    .Convention(underscore, Element.code, Element.insider, Element.version)
+                    // https://update.code.visualstudio.com/major.minor.patch/linux-rpm-armhf/stable
+                    .Url(Range(Element.linux, Element.rpm, Element.armhf))
                     ;
 
                 yield return Strategy(op, (linux, archive, arm))
-                    .Directories(Element.Linux, Element.arm).Extensions(Element.tar, Element.gz)
-                    .Convention(underscore, Element.code, Element.version, Element.armhf, Element.insider)
+                    .Directories(Element.Linux, Element.arm)
+                    .Extensions(Element.armhf, Element.tar, Element.gz)
+                    .Convention(underscore, Element.code, Element.insider, Element.version)
+                    // https://update.code.visualstudio.com/major.minor.patch/linux-armhf/stable
+                    .Url(Range(Element.linux, Element.armhf))
                     ;
 
                 // linux+deb+arm64+version => code_major.minor.version-stable_arm64.deb
