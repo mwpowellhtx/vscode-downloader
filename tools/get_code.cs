@@ -1319,21 +1319,24 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 // linux+rpm+x64+version => code-major.minor.version-stable.el7.x86_64.rpm
                 // linux+archive+x64+version => code-major.minor.version-x64-stable.tar.gz
                 yield return Strategy(op, (linux, deb, x64))
-                    .Directories(Element.Linux, Element.x64).Extensions(Element.amd64, Element.deb)
+                    .Directories(Element.Linux, Element.x64)
+                    .Extensions(Element.amd64, Element.deb)
                     .Convention(underscore, Element.code, Element.insiderOrNull, Element.version)
                     // https://update.code.visualstudio.com/major.minor.patch/linux-deb-x64/stable
                     .Url(Range(Element.linux, Element.deb, Element.x64))
                     ;
 
                 yield return Strategy(op, (linux, rpm, x64))
-                    .Directories(Element.Linux, Element.x64).Extensions(Element.el7, Element.x86_64, Element.rpm)
-                    .Convention(underscore, Element.code, Element.insiderOrNull, Element.version
+                    .Directories(Element.Linux, Element.x64)
+                    .Extensions(Element.el7, Element.x86_64, Element.rpm)
+                    .Convention(underscore, Element.code, Element.insiderOrNull, Element.version)
                     // https://update.code.visualstudio.com/major.minor.patch/linux-rpm-x64/stable
                     .Url(Range(Element.linux, Element.rpm, Element.x64))
                     ;
 
                 yield return Strategy(op, (linux, archive, x64))
-                    .Directories(Element.Linux, Element.x64).Extensions(Element.tar, Element.gz)
+                    .Directories(Element.Linux, Element.x64)
+                    .Extensions(Element.tar, Element.gz)
                     .Convention(underscore, Element.code, Element.insider, Element.x64, Element.version)
                     // https://update.code.visualstudio.com/major.minor.patch/linux-rpm-x64/stable
                     .Url(Range(Element.linux, Element.x64))
