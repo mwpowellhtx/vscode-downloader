@@ -1248,21 +1248,21 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                     // TODO: TBD: reduce the number of dictionaries, collections...
                     // TODO: TBD: and refocus in algo terms...
                     .Convention(Element.VSCode, Element.Setup, Element.ia32, Element.version, Element.insiderOrNull)
-                    // https://update.code.visualstudio.com/1.50.0/win32/stable
+                    // https://update.code.visualstudio.com/major.minor.patch/win32/stable
                     .Url(Range(Element.win32))
                     ;
 
                 yield return Strategy(op, 3, (win32, user, x86))
                     .Directories(Element.Windows, Element.x86).Extensions(Element.exe)
                     .Convention(Element.VSCode, Element.User, Element.Setup, Element.ia32, Element.version, Element.insiderOrNull)
-                    // https://update.code.visualstudio.com/1.50.0/win32-user/stable
+                    // https://update.code.visualstudio.com/major.minor.patch/win32-user/stable
                     .Url(Range(Element.win32, Element.user))
                     ;
 
                 yield return Strategy(op, (win32, archive, x86))
                     .Directories(Element.Windows, Element.x86).Extensions(Element.zip)
                     .Convention(Element.VSCode, Element.win32, Element.ia32, Element.version, Element.insiderOrNull)
-                    // https://update.code.visualstudio.com/1.50.0/win32-archive/stable
+                    // https://update.code.visualstudio.com/major.minor.patch/win32-archive/stable
                     .Url(Range(Element.win32, Element.archive))
                     ;
 
@@ -1272,21 +1272,21 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 yield return Strategy(op, 2, (win32, system, x64))
                     .Directories(Element.Windows, Element.x64).Extensions(Element.exe)
                     .Convention(Element.VSCode, Element.Setup, Element.x64, Element.version, Element.insiderOrNull)
-                    // https://update.code.visualstudio.com/1.50.0/win32-x64/stable
+                    // https://update.code.visualstudio.com/major.minor.patch/win32-x64/stable
                     .Url(Range(Element.win32, Element.x64))
                     ;
 
                 yield return Strategy(op, 3, (win32, user, x64))
                     .Directories(Element.Windows, Element.x64).Extensions(Element.exe)
                     .Convention(Element.VSCode, Element.User, Element.Setup, Element.x64, Element.version, Element.insiderOrNull)
-                    // https://update.code.visualstudio.com/1.50.0/win32-x64-user/stable
+                    // https://update.code.visualstudio.com/major.minor.patch/win32-x64-user/stable
                     .Url(Range(Element.win32, Element.x64, Element.user))
                     ;
 
                 yield return Strategy(op, (win32, archive, x64))
                     .Directories(Element.Windows, Element.x64).Extensions(Element.zip)
                     .Convention(Element.VSCode, Element.win32, Element.x64, Element.version, Element.insiderOrNull)
-                    // https://update.code.visualstudio.com/1.50.0/win32-x64-archive/stable
+                    // https://update.code.visualstudio.com/major.minor.patch/win32-x64-archive/stable
                     .Url(Range(Element.win32, Element.x64, Element.archive))
                     ;
 
@@ -1373,6 +1373,8 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 yield return Strategy(op, (darwin, archive, null))
                     .Directories(Element.macOS, Element.versionMacOS).Extensions(Element.zip)
                     .Convention(Element.VSCode, Element.darwin, Element.version, Element.insider)
+                    // https://update.code.visualstudio.com/major.minor.patch/darwin/stable
+                    .Url(Range(Element.darwin))
                     ;
             }
 
