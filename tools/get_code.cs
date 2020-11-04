@@ -319,6 +319,7 @@ namespace Code.Downloader
         User,
         Setup,
         darwin,
+        linux,
         win32,
         user,
         archive,
@@ -1320,16 +1321,22 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 yield return Strategy(op, (linux, deb, x64))
                     .Directories(Element.Linux, Element.x64).Extensions(Element.deb)
                     .Convention(underscore, Element.code, Element.version, Element.amd64)
+                    // https://update.code.visualstudio.com/major.minor.patch/linux-deb-x64/stable
+                    .Url(Range(Element.linux, Element.deb, Element.x64))
                     ;
 
                 yield return Strategy(op, (linux, rpm, x64))
                     .Directories(Element.Linux, Element.x64).Extensions(Element.rpm)
                     .Convention(underscore, Element.code, Element.version, Element.insider, Element.x86_64)
+                    // https://update.code.visualstudio.com/major.minor.patch/linux-rpm-x64/stable
+                    .Url(Range(Element.linux, Element.rpm, Element.x64))
                     ;
 
                 yield return Strategy(op, (linux, archive, x64))
                     .Directories(Element.Linux, Element.x64).Extensions(Element.tar, Element.gz)
                     .Convention(underscore, Element.code, Element.version, Element.x64, Element.insider)
+                    // https://update.code.visualstudio.com/major.minor.patch/linux-rpm-x64/stable
+                    .Url(Range(Element.linux, Element.x64))
                     ;
 
                 // linux+deb+arm+version => code_major.minor.version-stable_armhf.deb
