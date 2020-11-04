@@ -1296,16 +1296,22 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 yield return Strategy(op, 2, (win32, system, arm64))
                     .Directories(Element.Windows, Element.arm64).Extensions(Element.exe)
                     .Convention(Element.VSCode, Element.Setup, Element.arm64, Element.version, Element.insiderOrNull)
+                    // https://update.code.visualstudio.com/major.minor.patch/win32-arm64/stable
+                    .Url(Range(Element.win32, Element.arm64))
                     ;
 
                 yield return Strategy(op, 3, (win32, user, arm64))
                     .Directories(Element.Windows, Element.arm64).Extensions(Element.exe)
                     .Convention(Element.VSCode, Element.User, Element.Setup, Element.arm64, Element.version, Element.insiderOrNull)
+                    // https://update.code.visualstudio.com/major.minor.patch/win32-arm64-user/stable
+                    .Url(Range(Element.win32, Element.arm64, Element.user))
                     ;
 
                 yield return Strategy(op, (win32, archive, arm64))
                     .Directories(Element.Windows, Element.arm64).Extensions(Element.zip)
                     .Convention(Element.VSCode, Element.win32, Element.version, Element.insiderOrNull)
+                    // https://update.code.visualstudio.com/major.minor.patch/win32-arm64-archive/stable
+                    .Url(Range(Element.win32, Element.arm64, Element.archive))
                     ;
 
                 // linux+deb+x64+version => code_major.minor.version-stable_amd64.deb
