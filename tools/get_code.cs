@@ -1401,13 +1401,15 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 yield return Strategy(op, (linux, snap, null))
                     .Directories(Element.Linux, Element.snap).Extensions(Element.snap)
                     .Convention(Element.code, Element.insider, Element.version)
+                    // code_insider_major.minor.patch.snap
+                    .Url(Range(Element.linux, Element.snap, Element.x64))
                     ;
 
                 // darwin+version+stable => VSCode-darwin-major.minor.patch-stable.zip
                 yield return Strategy(op, (darwin, archive, null))
                     .Directories(Element.macOS, Element.versionMacOS).Extensions(Element.zip)
-                    .Convention(Element.VSCode, Element.darwin, Element.version, Element.insider)
-                    // https://update.code.visualstudio.com/major.minor.patch/darwin/stable
+                    .Convention(Element.VSCode, Element.darwin, Element.insider, Element.version)
+                    // VSCode-darwin-insider-major.minor.patch.zip
                     .Url(Range(Element.darwin))
                     ;
             }
