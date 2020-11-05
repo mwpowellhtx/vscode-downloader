@@ -1373,18 +1373,27 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 // linux+rpm+arm64+version => code-major.minor.version-stable.el7.aarch64.rpm
                 // linux+archive+arm64+version => code-major.minor.version-arm64-stable.tar.gz
                 yield return Strategy(op, (linux, deb, arm64))
-                    .Directories(Element.Linux, Element.arm64).Extensions(Element.deb)
-                    .Convention(underscore, Element.code, Element.version, Element.insider, Element.arm64)
+                    .Directories(Element.Linux, Element.arm64)
+                    .Extensions(Element.deb)
+                    .Convention(underscore, Element.code, Element.insider, Element.version, Element.arm64)
+                    // code_insider_major.minor.patch_arm64.deb
+                    .Url(Range(Element.linux, Element.deb, Element.arm64))
                     ;
 
                 yield return Strategy(op, (linux, rpm, arm64))
-                    .Directories(Element.Linux, Element.arm64).Extensions(Element.rpm)
-                    .Convention(underscore, Element.code, Element.version, Element.insider, Element.el7, Element.aarch64)
+                    .Directories(Element.Linux, Element.arm64)
+                    .Extensions(Element.el7, Element.aarch64, Element.rpm)
+                    .Convention(underscore, Element.code, Element.insider, Element.version)
+                    // code_insider_major.minor.patch.el7.aarch64.rpm
+                    .Url(Range(Element.linux, Element.rpm, Element.arm64))
                     ;
 
                 yield return Strategy(op, (linux, archive, arm64))
-                    .Directories(Element.Linux, Element.arm64).Extensions(Element.tar, Element.gz)
-                    .Convention(underscore, Element.code, Element.version, Element.arm64, Element.insider)
+                    .Directories(Element.Linux, Element.arm64)
+                    .Extensions(Element.tar, Element.gz)
+                    .Convention(underscore, Element.code, Element.insider, Element.version, Element.arm64)
+                    // code_insider_major.minor.patch_arm64.tar.gz
+                    .Url(Range(Element.linux, Element.arm64))
                     ;
 
                 // linux+snap => code-stable-major.minor.patch.snap
