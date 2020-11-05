@@ -1552,14 +1552,8 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
             if (op.IsDry)
             {
-                var renderedArgs = string.Join($"{comma} ", RenderNameObjectPairs(
-                        (nameof(t), (object)t)
-                        , (nameof(b), (object)b)
-                        , (nameof(a), (object)a)
-                    )
-                );
-
-                this.Writer.WriteLine($"{nameof(this.OnProcessSpecification)}{string.Join(renderedArgs, parens.ToArray())}");
+                this.Writer.WriteLine($"{nameof(this.OnProcessSpecification)}"
+                    + $"{T(parens, (nameof(t), (object)t), (nameof(b), (object)b), (nameof(a), (object)a))}");
             }
 
             this.OnProcessScenario(this.Strategies[spec].Render(op.Versions));
@@ -2161,6 +2155,11 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
             return string.Join(string.Join($"{comma} ", values.Select(x => $"{x}").Select(_Q)), squareBrackets.ToArray());
         }
+
+        public static string T(params (string name, object value)[] pairs) => T(curlyBraces, pairs);
+
+        public static string T(string enclosure, params (string name, object value)[] pairs) =>
+            T(enclosure, pairs.Select(x => (x.name, RenderObjectOrNull(x.value))).ToArray());
 
         public static string T(params (string name, string value)[] pairs) => T(curlyBraces, pairs);
 
