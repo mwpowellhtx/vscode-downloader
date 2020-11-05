@@ -94,6 +94,11 @@ namespace Code.Downloader
         public const string angleBrackets = "<>";
 
         /// <summary>
+        /// &quot;{}&quot;
+        /// </summary>
+        public const string curlyBraces = "{}";
+
+        /// <summary>
         /// &quot;http&quot;
         /// </summary>
         public const string http = nameof(http);
@@ -979,13 +984,6 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 return;
             }
 
-            string Q(string s) => $"{tick}{s}{tick}";
-
-            string A<T>(params T[] values)
-            {
-                return string.Join(string.Join($"{comma} ", values.Select(x => $"{x}").Select(Q)), squareBrackets.ToArray());
-            }
-
             this.Writer.WriteLine($"{nameof(Dry)}: {nameof(args)}: {A(args)}, {nameof(i)}: {i}");
 
             void ReportNameValuePair(string name, object value) => this.Writer.WriteLine(
@@ -1441,43 +1439,6 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
         /// <returns></returns>
         internal bool TryFilterSpecifications() => this.SelectedSpecifications.Any();
 
-        /// <summary>
-        /// Tries to Invoke the <see cref="Assets.Wget"/> asset given the <paramref name="uri"/>,
-        /// <paramref name="path"/> and additional <paramref name="args"/>.
-        /// </summary>
-        /// <param name="path">The output directory where wget should place the download.</param>
-        /// <param name="uri">The Uri that wget should use when getting the download.</param>
-        /// <param name="args">Additional command line arguments.</param>
-        /// <returns></returns>
-        private bool TryInvokeWget(string path, string uri, params string[] args)
-        {
-            var op = this.CurrentOptions;
-
-            var wgetPath = this.CurrentAssets.wgetPath;
-
-            // -P for --directory-prefix, in this form.
-            args = args.Concat(Range("-P", path, uri)).ToArray();
-
-            if (op.IsDry)
-            {
-                this.Writer.WriteLine($"{nameof(Dry)}: {wgetPath} {string.Join(" ", args)}");
-            }
-            else
-            {
-                var startInfo = new ProcessStartInfo(wgetPath)
-                {
-                    Arguments = string.Join(" ", args)
-                };
-
-                using (var process = Process.Start(startInfo))
-                {
-                    process.WaitForExit();
-                }
-            }
-
-            return true;
-        }
-
         private string _version;
 
         /// <summary>
@@ -1489,26 +1450,98 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 : $"{this.CurrentVersions.version}"
         );
 
-        private void OnProcessScenario((string url, string path, string fileName) scenario)
+        private void MakeDirectory(string path)
         {
             var op = this.CurrentOptions;
 
-            var (url, path, fileName) = scenario;
+            if (op.IsDry)
+            {
+                this.Writer.WriteLine($"{nameof(Dry)}: Making directory '{path}'");
+            }
+            else
+            {
+                Directory.CreateDirectory(path);
+            }
+        }
+
+        /// <summary>
+        /// Tries to Invoke the <see cref="Assets.Wget"/> asset given the <em>uri</em>,
+        /// <em>path</em> and <em>fileName</em> <paramref name="scenario"/>, and additional
+        /// <paramref name="args"/>.
+        /// </summary>
+        /// <param name="scenario">The <em>uri</em>, <em>path</em>, <em>fileName</em> Scenario.</param>
+        /// <param name="args">Any additional command line arguments.</param>
+        /// <returns></returns>
+        private bool TryInvokeWget((string uri, string path, string fileName) scenario, params string[] args)
+        {
+            var op = this.CurrentOptions;
+
+            var (uri, path, fileName) = scenario;
 
             if (op.IsDry)
             {
-                // TODO: TBD: consider refactoring the A() and Q() functions as internal static methods...
-                var report = string.Join($"{comma} ", RenderNameObjectPairs(
-                        (nameof(url), $"'{url}'")
-                        , (nameof(path), $"'{path}'")
-                        , (nameof(fileName), $"'{fileName}'")
-                    )
-                );
-
-                this.Writer.WriteLine($"{nameof(this.OnProcessScenario)}{string.Join(string.Join(report, parens.ToArray()), parens.ToArray())}");
+                this.Writer.WriteLine($"{nameof(Dry)}: {nameof(this.TryInvokeWget)}"
+                    + $"{T(parens, (nameof(scenario), T((nameof(uri), Q(uri)), (nameof(path), Q(path)), (nameof(fileName), Q(fileName)))))}");
             }
 
-            // TODO: TBD: connect the dots on the actual processing here...
+            var wgetPath = this.CurrentAssets.wgetPath;
+
+            // -O, --output-document, -P, --directory-prefix, in this form.
+            args = args.Concat(Range("-O", fileName, "-P", path, uri)).ToArray();
+
+            if (op.IsDry)
+            {
+                this.Writer.WriteLine($"{nameof(Dry)}: {wgetPath} {string.Join(" ", args)}");
+            }
+            else
+            {
+                this.MakeDirectory(path);
+
+                // TODO: TBD: so... we are doing these one at a time...
+                // TODO: TBD: we might look into increasing the parallelism here...
+                var startInfo = new ProcessStartInfo(wgetPath)
+                {
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    Arguments = string.Join(" ", args)
+                };
+
+                // TODO: TBD: use concurrent dictionary?
+                // TODO: TBD: remove processes from the dictionary as they exit...
+                // TODO: TBD: add new scenarios while we still have them...
+                // TODO: TBD: and do so until there are no more scenarios...
+                // https://docs.microsoft.com/en-us/dotnet/api/system.diagnostics.process.exited
+                // https://docs.microsoft.com/en-us/dotnet/api/system.diagnostics.process.-ctor
+                // https://docs.microsoft.com/en-us/dotnet/api/system.diagnostics.processstartinfo.arguments
+                using (var process = Process.Start(startInfo))
+                {
+                    process.Exited += delegate { /* TODO: TBD: handle any async responses here... */ };
+                    process.EnableRaisingEvents = true;
+                    process.WaitForExit();
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Processes the <em>uri</em>, <em>path</em>, <em>fileName</em>
+        /// <paramref name="scenario"/>.
+        /// </summary>
+        /// <param name="scenario">The <em>uri</em>, <em>path</em>, <em>fileName</em> Scenario.</param>
+        private void OnProcessScenario((string uri, string path, string fileName) scenario)
+        {
+            var op = this.CurrentOptions;
+
+            var (uri, path, fileName) = scenario;
+
+            if (op.IsDry)
+            {
+                this.Writer.WriteLine($"{nameof(Dry)}: {nameof(this.OnProcessScenario)}"
+                    + $"{T(parens, (nameof(scenario), T((nameof(uri), Q(uri)), (nameof(path), Q(path)), (nameof(fileName), Q(fileName)))))}");
+            }
+
+            TryInvokeWget(scenario);
         }
 
         private void OnProcessSpecification((Target t, Build b, Architecture? a) spec)
@@ -1572,17 +1605,6 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             var baseUriVersion = op.insider
                 ? $"{updateCodeUri}{version}-{nameof(op.insider)}/"
                 : $"{updateCodeUri}{version}/";
-
-            void MakeDirectory(string path)
-            {
-                if (op.IsDry)
-                {
-                    this.Writer.WriteLine($"{nameof(Dry)}: Making directory: {path}");
-                    return;
-                }
-
-                Directory.CreateDirectory(path);
-            }
 
             bool TryProcessAny(string path, string versionUriPhrase)
             {
@@ -2074,7 +2096,11 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             }
         }
 
-        internal static string RenderObjectOrNull(object value) => value == null ? "null" : $"{value}";
+        internal static string RenderObjectOrNull(object value)
+        {
+            // TODO: TBD: evaluate use cases for string specific tick delimited...
+            return value == null ? "null" : $"{value}";
+        }
 
         internal static IEnumerable<string> RenderNameObjectPairs(params (string name, object value)[] pairs)
         {
@@ -2115,6 +2141,34 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
         /// Gets the Maximum allowable <see cref="Console.WindowWidth"/>, defaults to <c>100</c>.
         /// </summary>
         internal static int MaxConsoleWindowWidth { get; } = 100;
+
+        public static string Q(string s) => Q(s, tick);
+
+        public static string Q(string s, char delim) => $"{delim}{s}{delim}";
+
+        public static string A<T>(params T[] values)
+        {
+            string S(T value) => $"{value}";
+
+            return string.Join(string.Join($"{comma} ", values.Select(S)), squareBrackets.ToArray());
+        }
+
+        public static string AQ<T>(params T[] values) => AQ(tick, values);
+
+        public static string AQ<T>(char delim, params T[] values)
+        {
+            string _Q(string s) => Q(s, delim);
+
+            return string.Join(string.Join($"{comma} ", values.Select(x => $"{x}").Select(_Q)), squareBrackets.ToArray());
+        }
+
+        public static string T(params (string name, string value)[] pairs) => T(curlyBraces, pairs);
+
+        public static string T(string enclosure, params (string name, string value)[] pairs)
+        {
+            var _pairs = pairs.Select(x => (x.name, (object)x.value)).ToArray();
+            return string.Join(string.Join($"{comma} ", RenderNameObjectPairs(_pairs)), enclosure.Substring(0, 2).ToArray());
+        }
     }
 }
 
