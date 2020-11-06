@@ -19,19 +19,19 @@ using System.Reflection;
 // TODO: TBD: with the thought being that potentially could merge the two repos, potentially...
 namespace Code.Downloader
 {
-    using static Program;
-    using static Help;
-    using static Target;
-    using static Build;
     using static Architecture;
-    using static Insider;
-    using static Versions;
+    using static Build;
     using static CodeVersion;
+    using static Help;
+    using static Insider;
     using static NoPause;
+    using static Target;
     using static AssetManager;
     using static Chars;
     using static DownloadStrategy;
+    using static Program;
     using static StringExtensions;
+    using static Versions;
 
     /// <summary>
     /// Defines many commonly used delimiters and such for use throughout.
