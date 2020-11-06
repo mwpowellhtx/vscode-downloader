@@ -2110,6 +2110,9 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
         private static OptionsParser CurrentOptions { get; }
 
+        /// <summary>
+        /// Program static constructor.
+        /// </summary>
         static Program()
         {
             // This is poor man's "DI" right here...
@@ -2117,6 +2120,10 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             CurrentProcessor = new DownloadProcessor(CurrentAssets, CurrentOptions);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="args"></param>
         public static void Main(string[] args)
         {
             var op = CurrentOptions;
@@ -2136,33 +2143,128 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
         /// </summary>
         internal static int MaxConsoleWindowWidth { get; } = 100;
 
+        /// <summary>
+        /// Returns the <paramref name="s"/> <see cref="string"/> enclosed by <see cref="tick"/>
+        /// marks.
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
         public static string Q(string s) => Q(s, tick);
 
-        public static string Q(string s, char delim) => $"{delim}{s}{delim}";
+        /// <summary>
+        /// Returns the <paramref name="s"/> <see cref="string"/> enclosed by
+        /// <paramref name="delim"/> marks.
+        /// </summary>
+        /// <param name="s"></param>
+        /// <returns></returns>
+        public static string Q(string s, char delim) => string.Join(s, delim, delim);
 
-        public static string A<T>(params T[] values)
+        /// <summary>
+        /// Returns the <paramref name="values"/> enumerated as an Array enclosed by
+        /// <see cref="squareBrackets"/>.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="values"></param>
+        /// <returns></returns>
+        public static string A<T>(params T[] values) => A(squareBrackets, values);
+
+        /// <summary>
+        /// Returns the <paramref name="values"/> enumerated as an Array enclosed by the
+        /// <paramref name="enclosure"/>.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="enclosure"></param>
+        /// <param name="values"></param>
+        /// <returns></returns>
+        public static string A<T>(string enclosure, params T[] values)
         {
             string S(T value) => $"{value}";
 
-            return string.Join(string.Join($"{comma} ", values.Select(S)), squareBrackets.ToArray());
+            return string.Join(string.Join($"{comma} ", values.Select(S)), enclosure.ToArray());
         }
 
-        public static string AQ<T>(params T[] values) => AQ(tick, values);
+        /// <summary>
+        /// Returns the <paramref name="values"/> enumerated as a <see cref="string"/> Array
+        /// quoted by <see cref="tick"/> marks and enclosed by <see cref="squareBrackets"/>.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="values"></param>
+        /// <returns></returns>
+        public static string AQ<T>(params T[] values) => AQ(tick, squareBrackets, values);
 
-        public static string AQ<T>(char delim, params T[] values)
+        /// <summary>
+        /// Returns the <paramref name="values"/> enumerated as a <see cref="string"/> Array
+        /// quoted by <paramref name="delim"/> marks and enclosed by <see cref="squareBrackets"/>.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="delim"></param>
+        /// <param name="values"></param>
+        /// <returns></returns>
+        public static string AQ<T>(char delim, params T[] values) => AQ(delim, squareBrackets, values);
+
+        /// <summary>
+        /// Returns the <paramref name="values"/> enumerated as a <see cref="string"/> Array
+        /// quoted by <see cref="tick"/> marks and enclosed by <paramref name="enclosure"/>.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="enclosure"></param>
+        /// <param name="values"></param>
+        /// <returns></returns>
+        public static string AQ<T>(string enclosure, params T[] values) => AQ(tick, enclosure, values);
+
+        /// <summary>
+        /// Returns the <paramref name="values"/> enumerated as a <see cref="string"/> Array
+        /// quoted by <paramref name="delim"/> marks and enclosed by <paramref name="enclosure"/>.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="delim"></param>
+        /// <param name="enclosure"></param>
+        /// <param name="values"></param>
+        /// <returns></returns>
+        /// <see cref="Q(string, char)"/>
+        /// <see cref="A{T}(string, T[])"/>
+        public static string AQ<T>(char delim, string enclosure, params T[] values)
         {
-            string _Q(string s) => Q(s, delim);
-
-            return string.Join(string.Join($"{comma} ", values.Select(x => $"{x}").Select(_Q)), squareBrackets.ToArray());
+            string _Q(T x) => Q($"{x}", delim);
+            return A(enclosure, values.Select(_Q).ToArray());
         }
 
+        /// <summary>
+        /// Returns the tuple <see cref="pairs"/> name value associations enclosed by
+        /// <see cref="curlyBraces"/>.
+        /// </summary>
+        /// <param name="pairs"></param>
+        /// <returns></returns>
+        /// <see cref="T(string, (string name, object value)[])"/>
         public static string T(params (string name, object value)[] pairs) => T(curlyBraces, pairs);
 
+        /// <summary>
+        /// Returns the <see cref="pairs"/> name value associations enclosed by
+        /// <paramref name="enclosure"/>.
+        /// </summary>
+        /// <param name="enclosure"></param>
+        /// <param name="pairs"></param>
+        /// <returns></returns>
+        /// <see cref="T(string, (string name, string value)[])"/>
         public static string T(string enclosure, params (string name, object value)[] pairs) =>
             T(enclosure, pairs.Select(x => (x.name, RenderObjectOrNull(x.value))).ToArray());
 
+        /// <summary>
+        /// Returns the <paramref name="pairs"/> name value asociations enclosed by
+        /// <see cref="curlyBraces"/>.
+        /// </summary>
+        /// <param name="pairs"></param>
+        /// <returns></returns>
+        /// <see cref="T(string, (string name, string value)[])"/>
         public static string T(params (string name, string value)[] pairs) => T(curlyBraces, pairs);
 
+        /// <summary>
+        /// Returns the <paramref name="pairs"/> name value associations enclosed by
+        /// <paramref name="enclosure"/>.
+        /// </summary>
+        /// <param name="enclosure"></param>
+        /// <param name="pairs"></param>
+        /// <returns></returns>
         public static string T(string enclosure, params (string name, string value)[] pairs)
         {
             var _pairs = pairs.Select(x => (x.name, (object)x.value)).ToArray();
