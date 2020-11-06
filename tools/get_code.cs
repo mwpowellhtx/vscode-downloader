@@ -1177,7 +1177,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 }
 
                 this.Writer.WriteLine($"{nameof(Dry)}: {nameof(GetSelectedSpecifications)}"
-                    + $"{A(parens, (nameof(filter), A(parens, GetRenderedFilterTuple())))}");
+                    + $"{T(parens, (nameof(filter), T(GetRenderedFilterTuple().ToArray())))}");
             }
 
             if (t == win32 && a == arm)
