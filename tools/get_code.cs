@@ -1165,6 +1165,21 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
         {
             var (t, b, a) = filter;
 
+            var op = this.CurrentOptions;
+
+            if (op.IsDry)
+            {
+                IEnumerable<(string name, string value)> GetRenderedFilterTuple()
+                {
+                    yield return (name: nameof(t), value: RenderObjectOrNull(t));
+                    yield return (name: nameof(b), value: RenderObjectOrNull(b));
+                    yield return (name: nameof(a), value: RenderObjectOrNull(a));
+                }
+
+                this.Writer.WriteLine($"{nameof(Dry)}: {nameof(GetSelectedSpecifications)}"
+                    + $"{A(parens, (nameof(filter), A(parens, GetRenderedFilterTuple())))}");
+            }
+
             if (t == win32 && a == arm)
             {
                 a = arm64;
@@ -1195,9 +1210,9 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             }
 
             bool OnSelectSpecification((Target t, Build b, Architecture? a) x) =>
-                (filter.t == null || filter.t == x.t)
-                    && (filter.b == null || filter.b == x.b)
-                    && (filter.a == null || filter.a == x.a)
+                (t == null || t == x.t)
+                    && (b == null || b == x.b)
+                    && (a == null || a == x.a)
                 ;
 
             return this.Strategies.Keys.Where(OnSelectSpecification).ToArray();
