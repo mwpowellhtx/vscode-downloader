@@ -1171,9 +1171,9 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             {
                 IEnumerable<(string name, string value)> GetRenderedFilterTuple()
                 {
-                    yield return (name: nameof(t), value: RenderObjectOrNull(t));
-                    yield return (name: nameof(b), value: RenderObjectOrNull(b));
-                    yield return (name: nameof(a), value: RenderObjectOrNull(a));
+                    yield return (nameof(t), RenderObjectOrNull(t));
+                    yield return (nameof(b), RenderObjectOrNull(b));
+                    yield return (nameof(a), RenderObjectOrNull(a));
                 }
 
                 this.Writer.WriteLine($"{nameof(Dry)}: {nameof(GetSelectedSpecifications)}"
@@ -1475,6 +1475,11 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             }
             else
             {
+                if (!path.DirectoryExists())
+                {
+                    this.Writer.WriteLine($"Creating directory '{path}'.");
+                }
+
                 Directory.CreateDirectory(path);
             }
         }
@@ -1491,7 +1496,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
         {
             var op = this.CurrentOptions;
 
-            var (uri, path, fileName) = scenario;
+            (string uri, string path, string fileName) = scenario;
 
             if (op.IsDry)
             {
@@ -1510,7 +1515,33 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             }
             else
             {
+                // TODO: TBD: this is pretty much what a get/move Task should do in this clause...
+
+                /* We think that wget will make the directory, however, files are not landing
+                 * in that directory like we might expect. For instance, assuming:
+                 *
+                 *      X:> cls && get_code.exe --target win32 --arch x64 --dry
+                 *
+                 * And we expect:
+                 *      wget.exe -O VSCode-win32-x64-1.50.1.zip -P 1.50.1\Windows\x64
+                 *          https://update.code.visualstudio.com/latest/win32-x64-archive/stable
+                 *
+                 * Or:
+                 *
+                 *      wget.exe -O VSCodeUserSetup-x64-1.50.1.exe -P 1.50.1\Windows\x64
+                 *          https://update.code.visualstudio.com/latest/win32-x64-user/stable
+                 *
+                 * Or:
+                 *
+                 *      wget.exe -O VSCodeSetup-x64-1.50.1.exe -P 1.50.1\Windows\x64
+                 *          https://update.code.visualstudio.com/latest/win32-x64/stable
+                 *
+                 * The directory '1.50.1\Windows\x64' gets created. But the files land in
+                 * the working directory. */
+
                 this.MakeDirectory(path);
+
+                this.Writer.WriteLine($"Running: {Path.GetFileName(wgetPath)} {string.Join(" ", args)}");
 
                 // TODO: TBD: so... we are doing these one at a time...
                 // TODO: TBD: we might look into increasing the parallelism here...
@@ -1533,6 +1564,25 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                     process.Exited += delegate { /* TODO: TBD: handle any async responses here... */ };
                     process.EnableRaisingEvents = true;
                     process.WaitForExit();
+                }
+
+                try
+                {
+                    if (fileName.FileExists() && path.DirectoryExists())
+                    {
+                        this.Writer.WriteLine($"Moving '{fileName}' to '{path}'.");
+                        fileName.MoveFile(path.CombinePath(fileName));
+                    }
+                    else
+                    {
+                        this.Writer.WriteLine($"Unable to move '{fileName}' to '{path}'.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    this.Writer.WriteLine($"Failed to move '{fileName}' to '{path}'.");
+                    this.Writer.WriteLine($"{ex.Message}");
+                    return false;
                 }
             }
 
@@ -2417,12 +2467,57 @@ namespace System.Collections.ObjectModel
 
 namespace System.IO
 {
+    using static Code.Downloader.Program;
+
     internal static class FileExtensions
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="sourceFileName"></param>
+        /// <param name="destFileName"></param>
+        public static void MoveFile(this string sourceFileName, string destFileName)
+        {
+            // TODO: TBD: for whatever reason, wget inconsistently downloads the files to the prefix directory.
+            if (destFileName.FileExists())
+            {
+                File.Delete(destFileName);
+            }
+
+            File.Move(sourceFileName, destFileName);
+        }
+
+        /// <summary>
+        /// Returns whether the <paramref name="path"/> <see cref="File.Exists"/>.
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
         public static bool FileExists(this string path) =>
             path != null && File.Exists(path);
 
+        /// <summary>
+        /// Returns whether the <paramref name="path"/> <see cref="Directory.Exists"/>.
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
+        public static bool DirectoryExists(this string path) =>
+            path != null && Directory.Exists(path);
+
+        /// <summary>
+        /// Returns the <see cref="Path.Combine(string[])"/> for the <paramref name="parts"/>.
+        /// </summary>
+        /// <param name="parts"></param>
+        /// <returns></returns>
         public static string CombinePath(this IEnumerable<string> parts) =>
             Path.Combine(parts.ToArray());
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="root"></param>
+        /// <param name="parts"></param>
+        /// <returns></returns>
+        public static string CombinePath(this string root, params string[] parts) =>
+            Path.Combine((!parts.Any() ? Range(root) : Range(root).Concat(parts)).ToArray());
     }
 }
