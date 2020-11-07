@@ -1259,11 +1259,6 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             // TODO: TBD: add capability for different conventions, stable, insider, etc...
             IEnumerable<DownloadStrategy> GetStrategies(OptionsParser op)
             {
-                // TODO: TBD: review the file scenarios, file names, urls, etc...
-                // TODO: TBD: make sure we have the bits we think should be represented there...
-                // Helper method to assist with the shorthand.
-                IEnumerable<T[]> ArrayRange<T>(IEnumerable<T>[] segments) => segments.Select(x => x.ToArray());
-
                 // win32+system+x86+version => VSCodeUserSetup-ia32-major.minor.patch.exe
                 // win32+user+x86+version => VSCodeSetup-ia32-major.minor.patch.exe
                 // win32+archive+x86+version => VSCode-win32-ia32-major.minor.patch.zip
@@ -1271,21 +1266,21 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                     .Directories(Element.Windows, Element.x86).Extensions(Element.exe)
                     // TODO: TBD: reduce the number of dictionaries, collections...
                     // TODO: TBD: and refocus in algo terms...
-                    .Convention(Element.VSCode, Element.Setup, Element.ia32, Element.version, Element.insiderOrNull)
+                    .Convention(Element.VSCode, Element.Setup, Element.ia32, Element.insider, Element.version)
                     // https://update.code.visualstudio.com/major.minor.patch/win32/stable
                     .Url(Range(Element.win32))
                     ;
 
                 yield return Strategy(op, 3, (win32, user, x86))
                     .Directories(Element.Windows, Element.x86).Extensions(Element.exe)
-                    .Convention(Element.VSCode, Element.User, Element.Setup, Element.ia32, Element.version, Element.insiderOrNull)
+                    .Convention(Element.VSCode, Element.User, Element.Setup, Element.ia32, Element.insider, Element.version)
                     // https://update.code.visualstudio.com/major.minor.patch/win32-user/stable
                     .Url(Range(Element.win32, Element.user))
                     ;
 
                 yield return Strategy(op, (win32, archive, x86))
                     .Directories(Element.Windows, Element.x86).Extensions(Element.zip)
-                    .Convention(Element.VSCode, Element.win32, Element.ia32, Element.version, Element.insiderOrNull)
+                    .Convention(Element.VSCode, Element.win32, Element.ia32, Element.insider, Element.version)
                     // https://update.code.visualstudio.com/major.minor.patch/win32-archive/stable
                     .Url(Range(Element.win32, Element.archive))
                     ;
@@ -1295,21 +1290,21 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 // win32+archive+x64+version => VSCode-win32-x64-major.minor.patch.zip
                 yield return Strategy(op, 2, (win32, system, x64))
                     .Directories(Element.Windows, Element.x64).Extensions(Element.exe)
-                    .Convention(Element.VSCode, Element.Setup, Element.x64, Element.version, Element.insiderOrNull)
+                    .Convention(Element.VSCode, Element.Setup, Element.x64, Element.insider, Element.version)
                     // https://update.code.visualstudio.com/major.minor.patch/win32-x64/stable
                     .Url(Range(Element.win32, Element.x64))
                     ;
 
                 yield return Strategy(op, 3, (win32, user, x64))
                     .Directories(Element.Windows, Element.x64).Extensions(Element.exe)
-                    .Convention(Element.VSCode, Element.User, Element.Setup, Element.x64, Element.version, Element.insiderOrNull)
+                    .Convention(Element.VSCode, Element.User, Element.Setup, Element.x64, Element.insider, Element.version)
                     // https://update.code.visualstudio.com/major.minor.patch/win32-x64-user/stable
                     .Url(Range(Element.win32, Element.x64, Element.user))
                     ;
 
                 yield return Strategy(op, (win32, archive, x64))
                     .Directories(Element.Windows, Element.x64).Extensions(Element.zip)
-                    .Convention(Element.VSCode, Element.win32, Element.x64, Element.version, Element.insiderOrNull)
+                    .Convention(Element.VSCode, Element.win32, Element.x64, Element.insider, Element.version)
                     // https://update.code.visualstudio.com/major.minor.patch/win32-x64-archive/stable
                     .Url(Range(Element.win32, Element.x64, Element.archive))
                     ;
@@ -1319,21 +1314,21 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 // win32+archive+arm64+version => VSCode-win32-arm64-major.minor.patch.zip
                 yield return Strategy(op, 2, (win32, system, arm64))
                     .Directories(Element.Windows, Element.arm64).Extensions(Element.exe)
-                    .Convention(Element.VSCode, Element.Setup, Element.arm64, Element.version, Element.insiderOrNull)
+                    .Convention(Element.VSCode, Element.Setup, Element.arm64, Element.insider, Element.version)
                     // https://update.code.visualstudio.com/major.minor.patch/win32-arm64/stable
                     .Url(Range(Element.win32, Element.arm64))
                     ;
 
                 yield return Strategy(op, 3, (win32, user, arm64))
                     .Directories(Element.Windows, Element.arm64).Extensions(Element.exe)
-                    .Convention(Element.VSCode, Element.User, Element.Setup, Element.arm64, Element.version, Element.insiderOrNull)
+                    .Convention(Element.VSCode, Element.User, Element.Setup, Element.arm64, Element.insider, Element.version)
                     // https://update.code.visualstudio.com/major.minor.patch/win32-arm64-user/stable
                     .Url(Range(Element.win32, Element.arm64, Element.user))
                     ;
 
                 yield return Strategy(op, (win32, archive, arm64))
                     .Directories(Element.Windows, Element.arm64).Extensions(Element.zip)
-                    .Convention(Element.VSCode, Element.win32, Element.version, Element.insiderOrNull)
+                    .Convention(Element.VSCode, Element.win32, Element.arm64, Element.insider, Element.version)
                     // https://update.code.visualstudio.com/major.minor.patch/win32-arm64-archive/stable
                     .Url(Range(Element.win32, Element.arm64, Element.archive))
                     ;
@@ -1344,7 +1339,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 yield return Strategy(op, (linux, deb, x64))
                     .Directories(Element.Linux, Element.x64)
                     .Extensions(Element.amd64, Element.deb)
-                    .Convention(underscore, Element.code, Element.insiderOrNull, Element.version)
+                    .Convention(underscore, Element.code, Element.insider, Element.version)
                     // https://update.code.visualstudio.com/major.minor.patch/linux-deb-x64/stable
                     .Url(Range(Element.linux, Element.deb, Element.x64))
                     ;
@@ -1352,7 +1347,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 yield return Strategy(op, (linux, rpm, x64))
                     .Directories(Element.Linux, Element.x64)
                     .Extensions(Element.el7, Element.x86_64, Element.rpm)
-                    .Convention(underscore, Element.code, Element.insiderOrNull, Element.version)
+                    .Convention(underscore, Element.code, Element.insider, Element.version)
                     // https://update.code.visualstudio.com/major.minor.patch/linux-rpm-x64/stable
                     .Url(Range(Element.linux, Element.rpm, Element.x64))
                     ;
@@ -1371,7 +1366,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 yield return Strategy(op, (linux, deb, arm))
                     .Directories(Element.Linux, Element.arm)
                     .Extensions(Element.el7, Element.armhf, Element.deb)
-                    .Convention(underscore, Element.code, Element.insiderOrNull, Element.version)
+                    .Convention(underscore, Element.code, Element.insider, Element.version)
                     // https://update.code.visualstudio.com/major.minor.patch/linux-deb-armhf/stable
                     .Url(Range(Element.linux, Element.deb, Element.armhf))
                     ;
@@ -1379,7 +1374,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 yield return Strategy(op, (linux, rpm, arm))
                     .Directories(Element.Linux, Element.arm)
                     .Extensions(Element.el7, Element.armv7hl, Element.rpm)
-                    .Convention(underscore, Element.code, Element.insiderOrNull, Element.version)
+                    .Convention(underscore, Element.code, Element.insider, Element.version)
                     // https://update.code.visualstudio.com/major.minor.patch/linux-rpm-armhf/stable
                     .Url(Range(Element.linux, Element.rpm, Element.armhf))
                     ;
@@ -1387,7 +1382,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 yield return Strategy(op, (linux, archive, arm))
                     .Directories(Element.Linux, Element.arm)
                     .Extensions(Element.armhf, Element.tar, Element.gz)
-                    .Convention(underscore, Element.code, Element.insiderOrNull, Element.version)
+                    .Convention(underscore, Element.code, Element.insider, Element.version)
                     // https://update.code.visualstudio.com/major.minor.patch/linux-armhf/stable
                     .Url(Range(Element.linux, Element.armhf))
                     ;
@@ -1398,7 +1393,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 yield return Strategy(op, (linux, deb, arm64))
                     .Directories(Element.Linux, Element.arm64)
                     .Extensions(Element.deb)
-                    .Convention(underscore, Element.code, Element.insiderOrNull, Element.version, Element.arm64)
+                    .Convention(underscore, Element.code, Element.insider, Element.version, Element.arm64)
                     // code_insider_major.minor.patch_arm64.deb
                     .Url(Range(Element.linux, Element.deb, Element.arm64))
                     ;
@@ -1406,7 +1401,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 yield return Strategy(op, (linux, rpm, arm64))
                     .Directories(Element.Linux, Element.arm64)
                     .Extensions(Element.el7, Element.aarch64, Element.rpm)
-                    .Convention(underscore, Element.code, Element.insiderOrNull, Element.version)
+                    .Convention(underscore, Element.code, Element.insider, Element.version)
                     // code_insider_major.minor.patch.el7.aarch64.rpm
                     .Url(Range(Element.linux, Element.rpm, Element.arm64))
                     ;
@@ -1414,7 +1409,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 yield return Strategy(op, (linux, archive, arm64))
                     .Directories(Element.Linux, Element.arm64)
                     .Extensions(Element.tar, Element.gz)
-                    .Convention(underscore, Element.code, Element.insiderOrNull, Element.version, Element.arm64)
+                    .Convention(underscore, Element.code, Element.insider, Element.version, Element.arm64)
                     // code_insider_major.minor.patch_arm64.tar.gz
                     .Url(Range(Element.linux, Element.arm64))
                     ;
@@ -1423,7 +1418,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 // linux+archive+snap => code-stable-major.minor.patch.snap
                 yield return Strategy(op, (linux, snap, null))
                     .Directories(Element.Linux, Element.snap).Extensions(Element.snap)
-                    .Convention(Element.code, Element.insiderOrNull, Element.version)
+                    .Convention(Element.code, Element.insider, Element.version)
                     // code_insider_major.minor.patch.snap
                     .Url(Range(Element.linux, Element.snap, Element.x64))
                     ;
@@ -1431,7 +1426,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 // darwin+version+stable => VSCode-darwin-major.minor.patch-stable.zip
                 yield return Strategy(op, (darwin, archive, null))
                     .Directories(Element.macOS, Element.versionMacOS).Extensions(Element.zip)
-                    .Convention(Element.VSCode, Element.darwin, Element.insiderOrNull, Element.version)
+                    .Convention(Element.VSCode, Element.darwin, Element.insider, Element.version)
                     // VSCode-darwin-insider-major.minor.patch.zip
                     .Url(Range(Element.darwin))
                     ;
