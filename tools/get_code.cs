@@ -5,10 +5,18 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 
 // https://fake.build/dotnet-assemblyinfo.html
 // https://csharppedia.com/en/tutorial/4264/assemblyinfo-cs-examples
-[assembly: AssemblyVersion("0.2.0.0")]
+[assembly: AssemblyProduct("VSCode")]
+[assembly: AssemblyTitle("VSCode Downloader")]
+[assembly: AssemblyCompany("Ellumination Technologies")]
+[assembly: AssemblyCopyright("Copyright (c) 2020")]
+[assembly: AssemblyVersion("1.0.0.0")]
+[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyInformationalVersion("1.0.0.0")]
+[assembly: Guid("f100c6cc-5c31-49e8-a913-0bda0cfefacc")]
 
 // TODO: TBD: just about done with this one...
 // TODO: TBD: I may also commit it to github after all, we'll see...
@@ -1251,6 +1259,8 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             // TODO: TBD: add capability for different conventions, stable, insider, etc...
             IEnumerable<DownloadStrategy> GetStrategies(OptionsParser op)
             {
+                // TODO: TBD: review the file scenarios, file names, urls, etc...
+                // TODO: TBD: make sure we have the bits we think should be represented there...
                 // Helper method to assist with the shorthand.
                 IEnumerable<T[]> ArrayRange<T>(IEnumerable<T>[] segments) => segments.Select(x => x.ToArray());
 
