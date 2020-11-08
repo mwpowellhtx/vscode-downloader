@@ -605,34 +605,40 @@ namespace Code.Downloader
         }
 
         /// <summary>
-        /// Replaces the <see cref="macOS"/> with the parsed <paramref name="s"/>
-        /// <see cref="Version"/>. When this fails due to <see cref="Version.Parse"/>
-        /// exception, replaces with the <paramref name="previousOS"/>.
+        /// Replaces the <see cref="Version"/> with the parsed <paramref name="s"/> value.
+        /// When this fails due to <see cref="Version.Parse"/> exception, replaces with the
+        /// <paramref name="previous"/>.
         /// </summary>
         /// <param name="s"></param>
-        /// <param name="previousOS"></param>
-        private static void ReplaceMacOS(string s, Version previousOS)
+        /// <param name="previous"></param>
+        private static void ReplaceVersion(string s, Version previous, SetVersionCallback onReplace)
         {
             try
             {
-                Versions.macOS = Version.Parse(s);
+                onReplace.Invoke(Version.Parse(s));
             }
             catch
             {
                 // Replace with the previous value when
-                Versions.macOS = previousOS;
+                onReplace.Invoke(previous);
             }
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="value"></param>
+        private delegate void SetVersionCallback(Version value);
 
         /// <summary>
         /// Replaces the <see cref="macOS"/> with the parsed <paramref name="s"/>.
         /// </summary>
         /// <param name="s"></param>
         /// <see cref="macOS"/>
-        internal static void ReplaceMacOS(string s) => ReplaceMacOS(s, macOS);
+        internal static void ReplaceMacOS(string s) => ReplaceVersion(s, macOS, x => macOS = x);
 
         /// <summary>
-        /// 10.10+
+        /// &quot;10.10+&quot;
         /// </summary>
         internal static System.Version macOS { get; private set; } = Version.Parse("10.10");
 
@@ -649,7 +655,17 @@ namespace Code.Downloader
         /// <see cref="macOS"/>
         internal static string renderedMacOS => $"{macOS}";
 
-        internal static System.Version latestVersion { get; } = Version.Parse("1.50.1");
+        /// <summary>
+        /// Replaces the <see cref="latestVersion"/> with the parsed <paramref name="s"/>.
+        /// </summary>
+        /// <param name="s"></param>
+        /// <see cref="latestVersion"/>
+        internal static void ReplaceLatestVersion(string s) => ReplaceVersion(s, latestVersion, x => latestVersion = x);
+
+        /// <summary>
+        /// &quot;1.50.1&quot;
+        /// </summary>
+        internal static System.Version latestVersion { get; private set; } = Version.Parse("1.50.1");
 
         /// <summary>
         /// Gets or Sets the Rendered <see cref="string"/> <see cref="version"/>.
@@ -766,6 +782,7 @@ namespace Code.Downloader
         private string[] NoPauseOpts { get; }
         private string[] CodeVersionOpts { get; }
         private string[] MacOsOpts { get; }
+        private string[] LatestVersionOpts { get; }
 
         private string[] TargetVals { get; }
         private string[] ArchVals { get; }
@@ -843,6 +860,7 @@ namespace Code.Downloader
             this.NoPauseOpts = GetTypeBasedOptions<NoPause>(selectAll).Select(DressOptionPunctuation).ToArray();
 
             this.MacOsOpts = Range("--macos").ToArray();
+            this.LatestVersionOpts = Range("-L", "--latest-version").ToArray();
 
             // TODO: TBD: there's probably a pattern here we can factor to a method, at least...
             this.CodeVersionOpts = Range($"{hyp}{hyp}{CodeVersion.code}{hyp}{CodeVersion.version}"
@@ -1017,6 +1035,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             , (this.InsiderOpts, $"--x, whether to get the {nameof(insider)}. Defaults to {nameof(stable)} absent.", this.DefaultVals)
             , (this.VersionOpts, "--x, whether to show the downloader version", this.DefaultVals)
             , (this.MacOsOpts, "--x VALUE, permits users to train downloader with the macOS version", this.DefaultVals)
+            , (this.LatestVersionOpts, "--x VALUE, permits users to train downloader with the latest version", this.DefaultVals)
         );
 
         private void ReportDryRun(int i, params string[] args)
@@ -1151,6 +1170,12 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 if (this.MacOsOpts.Contains(arg))
                 {
                     Versions.ReplaceMacOS(GetArgument(++i));
+                    continue;
+                }
+
+                if (this.LatestVersionOpts.Contains(arg))
+                {
+                    Versions.ReplaceLatestVersion(GetArgument(++i));
                     continue;
                 }
 
