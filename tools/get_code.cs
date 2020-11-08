@@ -611,15 +611,18 @@ namespace Code.Downloader
         /// </summary>
         /// <param name="s"></param>
         /// <param name="previous"></param>
+        /// <param name="onReplace"></param>
         private static void ReplaceVersion(string s, Version previous, SetVersionCallback onReplace)
         {
             try
             {
-                onReplace.Invoke(Version.Parse(s));
+                var parsed = Version.Parse(s);
+                onReplace.Invoke(parsed);
             }
             catch
             {
                 // Replace with the previous value when
+                //Console.Out.WriteLine($"An exception occurred replacing {previous}");
                 onReplace.Invoke(previous);
             }
         }
@@ -634,13 +637,15 @@ namespace Code.Downloader
         /// Replaces the <see cref="macOS"/> with the parsed <paramref name="s"/>.
         /// </summary>
         /// <param name="s"></param>
-        /// <see cref="macOS"/>
-        internal static void ReplaceMacOS(string s) => ReplaceVersion(s, macOS, x => macOS = x);
+        /// <see cref="_macOS"/>
+        internal static void ReplaceMacOS(string s) => ReplaceVersion(s, macOS, x => _macOS = x);
+
+        private static System.Version _macOS = Version.Parse("10.10");
 
         /// <summary>
         /// &quot;10.10+&quot;
         /// </summary>
-        internal static System.Version macOS { get; private set; } = Version.Parse("10.10");
+        internal static System.Version macOS => _macOS;
 
         // TODO: TBD: version informs the directory path...
         // TODO: TBD: the macOS version informs darwin directory path...
@@ -659,13 +664,15 @@ namespace Code.Downloader
         /// Replaces the <see cref="latestVersion"/> with the parsed <paramref name="s"/>.
         /// </summary>
         /// <param name="s"></param>
-        /// <see cref="latestVersion"/>
-        internal static void ReplaceLatestVersion(string s) => ReplaceVersion(s, latestVersion, x => latestVersion = x);
+        /// <see cref="_latestVersion"/>
+        internal static void ReplaceLatestVersion(string s) => ReplaceVersion(s, latestVersion, x => _latestVersion = x);
+
+        private static System.Version _latestVersion = Version.Parse("1.50.1");
 
         /// <summary>
         /// &quot;1.50.1&quot;
         /// </summary>
-        internal static System.Version latestVersion { get; private set; } = Version.Parse("1.50.1");
+        internal static System.Version latestVersion => _latestVersion;
 
         /// <summary>
         /// Gets or Sets the Rendered <see cref="string"/> <see cref="version"/>.
@@ -1097,8 +1104,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
         public bool TryParseArguments(params string[] args)
         {
-            string GetArgument(int index) => index >= args.Length
-                ? string.Empty : args.ElementAt(index).ToLower();
+            string GetArgument(int index) => index >= args.Length ? string.Empty : args.ElementAt(index);
 
             // Reset the optional values to nominal defaults.
             this.pause = NoPause.pause;
@@ -1224,12 +1230,222 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
         // TODO: TBD: we will relay the CurrentVersions instance to the strategy instead...
         private string Version => this.CurrentVersions.selector == latest ? $"{latest}" : $"{version}";
 
-		// TODO: TBD: the strategies dictionary being what it is, we might consider these keys as being the "specs" themselves, actually...
-		// TODO: TBD: will save that factoring for a subsequent commitment...
+        /// <br/>win32+system+x86+version => VSCodeUserSetup-ia32-major.minor.patch.exe
+        /// <br/>win32+user+x86+version => VSCodeSetup-ia32-major.minor.patch.exe
+        /// <br/>win32+archive+x86+version => VSCode-win32-ia32-major.minor.patch.zip
+        /// <br/>
+        /// <br/>win32+system+x64+version => VSCodeSetup-x64-major.minor.patch.exe
+        /// <br/>win32+user+x64+version => VSCodeUserSetup-x64-major.minor.patch.exe
+        /// <br/>win32+archive+x64+version => VSCode-win32-x64-major.minor.patch.zip
+        /// <br/>
+        /// <br/>win32+system+arm64+version => VSCodeSetup-arm64-major.minor.patch.exe
+        /// <br/>win32+user+arm64+version => VSCodeUserSetup-arm64-major.minor.patch.exe
+        /// <br/>win32+archive+arm64+version => VSCode-win32-arm64-major.minor.patch.zip
+        /// <br/>
+        /// <br/>linux+deb+x64+version => code_major.minor.version-stable_amd64.deb
+        /// <br/>linux+rpm+x64+version => code-major.minor.version-stable.el7.x86_64.rpm
+        /// <br/>linux+archive+x64+version => code-major.minor.version-x64-stable.tar.gz
+        /// <br/>
+        /// <br/>linux+deb+arm+version => code_major.minor.version-stable_armhf.deb
+        /// <br/>linux+rpm+arm+version => code-major.minor.version-stable.el7.armv7hl.rpm
+        /// <br/>linux+archive+arm+version => code-major.minor.version-armhf-stable.tar.gz
+        /// <br/>
+        /// <br/>linux+deb+arm64+version => code_major.minor.version-stable_arm64.deb
+        /// <br/>linux+rpm+arm64+version => code-major.minor.version-stable.el7.aarch64.rpm
+        /// <br/>linux+archive+arm64+version => code-major.minor.version-arm64-stable.tar.gz
+        /// <br/>
+        /// <br/>darwin+version+stable => VSCode-darwin-major.minor.patch-stable.zip
+
+        // TODO: TBD: so far with support for "stable" convention...
+        // TODO: TBD: add capability for different conventions, stable, insider, etc...
+        private static IEnumerable<DownloadStrategy> GetStrategies(OptionsParser op)
+        {
+            // win32+system+x86+version => VSCodeUserSetup-ia32-major.minor.patch.exe
+            // win32+user+x86+version => VSCodeSetup-ia32-major.minor.patch.exe
+            // win32+archive+x86+version => VSCode-win32-ia32-major.minor.patch.zip
+            yield return Strategy(op, 2, (win32, system, x86))
+                .Directories(Element.Windows, Element.x86).Extensions(Element.exe)
+                // TODO: TBD: reduce the number of dictionaries, collections...
+                // TODO: TBD: and refocus in algo terms...
+                .Convention(Element.VSCode, Element.Setup, Element.ia32, Element.insider, Element.version)
+                // https://update.code.visualstudio.com/major.minor.patch/win32/stable
+                .Url(Range(Element.win32))
+                ;
+
+            yield return Strategy(op, 3, (win32, user, x86))
+                .Directories(Element.Windows, Element.x86).Extensions(Element.exe)
+                .Convention(Element.VSCode, Element.User, Element.Setup, Element.ia32, Element.insider, Element.version)
+                // https://update.code.visualstudio.com/major.minor.patch/win32-user/stable
+                .Url(Range(Element.win32, Element.user))
+                ;
+
+            yield return Strategy(op, (win32, archive, x86))
+                .Directories(Element.Windows, Element.x86).Extensions(Element.zip)
+                .Convention(Element.VSCode, Element.win32, Element.ia32, Element.insider, Element.version)
+                // https://update.code.visualstudio.com/major.minor.patch/win32-archive/stable
+                .Url(Range(Element.win32, Element.archive))
+                ;
+
+            // win32+system+x64+version => VSCodeSetup-x64-major.minor.patch.exe
+            // win32+user+x64+version => VSCodeUserSetup-x64-major.minor.patch.exe
+            // win32+archive+x64+version => VSCode-win32-x64-major.minor.patch.zip
+            yield return Strategy(op, 2, (win32, system, x64))
+                .Directories(Element.Windows, Element.x64).Extensions(Element.exe)
+                .Convention(Element.VSCode, Element.Setup, Element.x64, Element.insider, Element.version)
+                // https://update.code.visualstudio.com/major.minor.patch/win32-x64/stable
+                .Url(Range(Element.win32, Element.x64))
+                ;
+
+            yield return Strategy(op, 3, (win32, user, x64))
+                .Directories(Element.Windows, Element.x64).Extensions(Element.exe)
+                .Convention(Element.VSCode, Element.User, Element.Setup, Element.x64, Element.insider, Element.version)
+                // https://update.code.visualstudio.com/major.minor.patch/win32-x64-user/stable
+                .Url(Range(Element.win32, Element.x64, Element.user))
+                ;
+
+            yield return Strategy(op, (win32, archive, x64))
+                .Directories(Element.Windows, Element.x64).Extensions(Element.zip)
+                .Convention(Element.VSCode, Element.win32, Element.x64, Element.insider, Element.version)
+                // https://update.code.visualstudio.com/major.minor.patch/win32-x64-archive/stable
+                .Url(Range(Element.win32, Element.x64, Element.archive))
+                ;
+
+            // win32+system+arm64+version => VSCodeSetup-arm64-major.minor.patch.exe
+            // win32+user+arm64+version => VSCodeUserSetup-arm64-major.minor.patch.exe
+            // win32+archive+arm64+version => VSCode-win32-arm64-major.minor.patch.zip
+            yield return Strategy(op, 2, (win32, system, arm64))
+                .Directories(Element.Windows, Element.arm64).Extensions(Element.exe)
+                .Convention(Element.VSCode, Element.Setup, Element.arm64, Element.insider, Element.version)
+                // https://update.code.visualstudio.com/major.minor.patch/win32-arm64/stable
+                .Url(Range(Element.win32, Element.arm64))
+                ;
+
+            yield return Strategy(op, 3, (win32, user, arm64))
+                .Directories(Element.Windows, Element.arm64).Extensions(Element.exe)
+                .Convention(Element.VSCode, Element.User, Element.Setup, Element.arm64, Element.insider, Element.version)
+                // https://update.code.visualstudio.com/major.minor.patch/win32-arm64-user/stable
+                .Url(Range(Element.win32, Element.arm64, Element.user))
+                ;
+
+            yield return Strategy(op, (win32, archive, arm64))
+                .Directories(Element.Windows, Element.arm64).Extensions(Element.zip)
+                .Convention(Element.VSCode, Element.win32, Element.arm64, Element.insider, Element.version)
+                // https://update.code.visualstudio.com/major.minor.patch/win32-arm64-archive/stable
+                .Url(Range(Element.win32, Element.arm64, Element.archive))
+                ;
+
+            // linux+deb+x64+version => code_major.minor.version-stable_amd64.deb
+            // linux+rpm+x64+version => code-major.minor.version-stable.el7.x86_64.rpm
+            // linux+archive+x64+version => code-major.minor.version-x64-stable.tar.gz
+            yield return Strategy(op, (linux, deb, x64))
+                .Directories(Element.Linux, Element.x64)
+                .Extensions(Element.amd64, Element.deb)
+                .Convention(underscore, Element.code, Element.insider, Element.version)
+                // https://update.code.visualstudio.com/major.minor.patch/linux-deb-x64/stable
+                .Url(Range(Element.linux, Element.deb, Element.x64))
+                ;
+
+            yield return Strategy(op, (linux, rpm, x64))
+                .Directories(Element.Linux, Element.x64)
+                .Extensions(Element.el7, Element.x86_64, Element.rpm)
+                .Convention(underscore, Element.code, Element.insider, Element.version)
+                // https://update.code.visualstudio.com/major.minor.patch/linux-rpm-x64/stable
+                .Url(Range(Element.linux, Element.rpm, Element.x64))
+                ;
+
+            yield return Strategy(op, (linux, archive, x64))
+                .Directories(Element.Linux, Element.x64)
+                .Extensions(Element.tar, Element.gz)
+                .Convention(underscore, Element.code, Element.insiderOrNull, Element.x64, Element.version)
+                // https://update.code.visualstudio.com/major.minor.patch/linux-rpm-x64/stable
+                .Url(Range(Element.linux, Element.x64))
+                ;
+
+            // linux+deb+arm+version => code_major.minor.version-stable_armhf.deb
+            // linux+rpm+arm+version => code-major.minor.version-stable.el7.armv7hl.rpm
+            // linux+archive+arm+version => code-major.minor.version-armhf-stable.tar.gz
+            yield return Strategy(op, (linux, deb, arm))
+                .Directories(Element.Linux, Element.arm)
+                .Extensions(Element.el7, Element.armhf, Element.deb)
+                .Convention(underscore, Element.code, Element.insider, Element.version)
+                // https://update.code.visualstudio.com/major.minor.patch/linux-deb-armhf/stable
+                .Url(Range(Element.linux, Element.deb, Element.armhf))
+                ;
+
+            yield return Strategy(op, (linux, rpm, arm))
+                .Directories(Element.Linux, Element.arm)
+                .Extensions(Element.el7, Element.armv7hl, Element.rpm)
+                .Convention(underscore, Element.code, Element.insider, Element.version)
+                // https://update.code.visualstudio.com/major.minor.patch/linux-rpm-armhf/stable
+                .Url(Range(Element.linux, Element.rpm, Element.armhf))
+                ;
+
+            yield return Strategy(op, (linux, archive, arm))
+                .Directories(Element.Linux, Element.arm)
+                .Extensions(Element.armhf, Element.tar, Element.gz)
+                .Convention(underscore, Element.code, Element.insider, Element.version)
+                // https://update.code.visualstudio.com/major.minor.patch/linux-armhf/stable
+                .Url(Range(Element.linux, Element.armhf))
+                ;
+
+            // linux+deb+arm64+version => code_major.minor.version-stable_arm64.deb
+            // linux+rpm+arm64+version => code-major.minor.version-stable.el7.aarch64.rpm
+            // linux+archive+arm64+version => code-major.minor.version-arm64-stable.tar.gz
+            yield return Strategy(op, (linux, deb, arm64))
+                .Directories(Element.Linux, Element.arm64)
+                .Extensions(Element.deb)
+                .Convention(underscore, Element.code, Element.insider, Element.version, Element.arm64)
+                // code_insider_major.minor.patch_arm64.deb
+                .Url(Range(Element.linux, Element.deb, Element.arm64))
+                ;
+
+            yield return Strategy(op, (linux, rpm, arm64))
+                .Directories(Element.Linux, Element.arm64)
+                .Extensions(Element.el7, Element.aarch64, Element.rpm)
+                .Convention(underscore, Element.code, Element.insider, Element.version)
+                // code_insider_major.minor.patch.el7.aarch64.rpm
+                .Url(Range(Element.linux, Element.rpm, Element.arm64))
+                ;
+
+            yield return Strategy(op, (linux, archive, arm64))
+                .Directories(Element.Linux, Element.arm64)
+                .Extensions(Element.tar, Element.gz)
+                .Convention(underscore, Element.code, Element.insider, Element.version, Element.arm64)
+                // code_insider_major.minor.patch_arm64.tar.gz
+                .Url(Range(Element.linux, Element.arm64))
+                ;
+
+            // linux+snap => code-stable-major.minor.patch.snap
+            // linux+archive+snap => code-stable-major.minor.patch.snap
+            yield return Strategy(op, (linux, snap, null))
+                .Directories(Element.Linux, Element.snap).Extensions(Element.snap)
+                .Convention(Element.code, Element.insider, Element.version)
+                // code_insider_major.minor.patch.snap
+                .Url(Range(Element.linux, Element.snap, Element.x64))
+                ;
+
+            // darwin+version+stable => VSCode-darwin-major.minor.patch-stable.zip
+            yield return Strategy(op, (darwin, archive, null))
+                .Directories(Element.macOS, Element.versionMacOS).Extensions(Element.zip)
+                .Convention(Element.VSCode, Element.darwin, Element.insider, Element.version)
+                // VSCode-darwin-insider-major.minor.patch.zip
+                .Url(Range(Element.darwin))
+                ;
+        }
+
+        private IDictionary<(Target t, Build b, Architecture? a), DownloadStrategy> _strategies;
+
+        // TODO: TBD: the strategies dictionary being what it is, we might consider these keys as being the "specs" themselves, actually...
+        // TODO: TBD: will save that factoring for a subsequent commitment...
         /// <summary>
-        /// Gets the Strategies for use during Download processing.
+        /// Gets the Strategies for use during Download processing. It is critical that we
+        /// postpone mending the Strategies until after command line argument parsing has
+		/// finished. This is because mission critical details like Code and MacOS versions
+		/// may be trained during argument parsing.
         /// </summary>
-        private IDictionary<(Target t, Build b, Architecture? a), DownloadStrategy> Strategies { get; }
+        private IDictionary<(Target t, Build b, Architecture? a), DownloadStrategy> Strategies => this._strategies ?? (
+            this._strategies = GetStrategies(this.CurrentOptions).ToDictionary(x => x.Spec)
+        );
 
         private IEnumerable<(Target t, Build b, Architecture? a)> GetSelectedSpecifications(OptionsParser op) =>
             this.GetSelectedSpecifications(op.Filter);
@@ -1294,210 +1510,6 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
         internal DownloadProcessor(AssetManager assets, OptionsParser options)
             : this(assets, options, null)
         {
-            /// <br/>win32+system+x86+version => VSCodeUserSetup-ia32-major.minor.patch.exe
-            /// <br/>win32+user+x86+version => VSCodeSetup-ia32-major.minor.patch.exe
-            /// <br/>win32+archive+x86+version => VSCode-win32-ia32-major.minor.patch.zip
-            /// <br/>
-            /// <br/>win32+system+x64+version => VSCodeSetup-x64-major.minor.patch.exe
-            /// <br/>win32+user+x64+version => VSCodeUserSetup-x64-major.minor.patch.exe
-            /// <br/>win32+archive+x64+version => VSCode-win32-x64-major.minor.patch.zip
-            /// <br/>
-            /// <br/>win32+system+arm64+version => VSCodeSetup-arm64-major.minor.patch.exe
-            /// <br/>win32+user+arm64+version => VSCodeUserSetup-arm64-major.minor.patch.exe
-            /// <br/>win32+archive+arm64+version => VSCode-win32-arm64-major.minor.patch.zip
-            /// <br/>
-            /// <br/>linux+deb+x64+version => code_major.minor.version-stable_amd64.deb
-            /// <br/>linux+rpm+x64+version => code-major.minor.version-stable.el7.x86_64.rpm
-            /// <br/>linux+archive+x64+version => code-major.minor.version-x64-stable.tar.gz
-            /// <br/>
-            /// <br/>linux+deb+arm+version => code_major.minor.version-stable_armhf.deb
-            /// <br/>linux+rpm+arm+version => code-major.minor.version-stable.el7.armv7hl.rpm
-            /// <br/>linux+archive+arm+version => code-major.minor.version-armhf-stable.tar.gz
-            /// <br/>
-            /// <br/>linux+deb+arm64+version => code_major.minor.version-stable_arm64.deb
-            /// <br/>linux+rpm+arm64+version => code-major.minor.version-stable.el7.aarch64.rpm
-            /// <br/>linux+archive+arm64+version => code-major.minor.version-arm64-stable.tar.gz
-            /// <br/>
-            /// <br/>darwin+version+stable => VSCode-darwin-major.minor.patch-stable.zip
-
-            // TODO: TBD: so far with support for "stable" convention...
-            // TODO: TBD: add capability for different conventions, stable, insider, etc...
-            IEnumerable<DownloadStrategy> GetStrategies(OptionsParser op)
-            {
-                // win32+system+x86+version => VSCodeUserSetup-ia32-major.minor.patch.exe
-                // win32+user+x86+version => VSCodeSetup-ia32-major.minor.patch.exe
-                // win32+archive+x86+version => VSCode-win32-ia32-major.minor.patch.zip
-                yield return Strategy(op, 2, (win32, system, x86))
-                    .Directories(Element.Windows, Element.x86).Extensions(Element.exe)
-                    // TODO: TBD: reduce the number of dictionaries, collections...
-                    // TODO: TBD: and refocus in algo terms...
-                    .Convention(Element.VSCode, Element.Setup, Element.ia32, Element.insider, Element.version)
-                    // https://update.code.visualstudio.com/major.minor.patch/win32/stable
-                    .Url(Range(Element.win32))
-                    ;
-
-                yield return Strategy(op, 3, (win32, user, x86))
-                    .Directories(Element.Windows, Element.x86).Extensions(Element.exe)
-                    .Convention(Element.VSCode, Element.User, Element.Setup, Element.ia32, Element.insider, Element.version)
-                    // https://update.code.visualstudio.com/major.minor.patch/win32-user/stable
-                    .Url(Range(Element.win32, Element.user))
-                    ;
-
-                yield return Strategy(op, (win32, archive, x86))
-                    .Directories(Element.Windows, Element.x86).Extensions(Element.zip)
-                    .Convention(Element.VSCode, Element.win32, Element.ia32, Element.insider, Element.version)
-                    // https://update.code.visualstudio.com/major.minor.patch/win32-archive/stable
-                    .Url(Range(Element.win32, Element.archive))
-                    ;
-
-                // win32+system+x64+version => VSCodeSetup-x64-major.minor.patch.exe
-                // win32+user+x64+version => VSCodeUserSetup-x64-major.minor.patch.exe
-                // win32+archive+x64+version => VSCode-win32-x64-major.minor.patch.zip
-                yield return Strategy(op, 2, (win32, system, x64))
-                    .Directories(Element.Windows, Element.x64).Extensions(Element.exe)
-                    .Convention(Element.VSCode, Element.Setup, Element.x64, Element.insider, Element.version)
-                    // https://update.code.visualstudio.com/major.minor.patch/win32-x64/stable
-                    .Url(Range(Element.win32, Element.x64))
-                    ;
-
-                yield return Strategy(op, 3, (win32, user, x64))
-                    .Directories(Element.Windows, Element.x64).Extensions(Element.exe)
-                    .Convention(Element.VSCode, Element.User, Element.Setup, Element.x64, Element.insider, Element.version)
-                    // https://update.code.visualstudio.com/major.minor.patch/win32-x64-user/stable
-                    .Url(Range(Element.win32, Element.x64, Element.user))
-                    ;
-
-                yield return Strategy(op, (win32, archive, x64))
-                    .Directories(Element.Windows, Element.x64).Extensions(Element.zip)
-                    .Convention(Element.VSCode, Element.win32, Element.x64, Element.insider, Element.version)
-                    // https://update.code.visualstudio.com/major.minor.patch/win32-x64-archive/stable
-                    .Url(Range(Element.win32, Element.x64, Element.archive))
-                    ;
-
-                // win32+system+arm64+version => VSCodeSetup-arm64-major.minor.patch.exe
-                // win32+user+arm64+version => VSCodeUserSetup-arm64-major.minor.patch.exe
-                // win32+archive+arm64+version => VSCode-win32-arm64-major.minor.patch.zip
-                yield return Strategy(op, 2, (win32, system, arm64))
-                    .Directories(Element.Windows, Element.arm64).Extensions(Element.exe)
-                    .Convention(Element.VSCode, Element.Setup, Element.arm64, Element.insider, Element.version)
-                    // https://update.code.visualstudio.com/major.minor.patch/win32-arm64/stable
-                    .Url(Range(Element.win32, Element.arm64))
-                    ;
-
-                yield return Strategy(op, 3, (win32, user, arm64))
-                    .Directories(Element.Windows, Element.arm64).Extensions(Element.exe)
-                    .Convention(Element.VSCode, Element.User, Element.Setup, Element.arm64, Element.insider, Element.version)
-                    // https://update.code.visualstudio.com/major.minor.patch/win32-arm64-user/stable
-                    .Url(Range(Element.win32, Element.arm64, Element.user))
-                    ;
-
-                yield return Strategy(op, (win32, archive, arm64))
-                    .Directories(Element.Windows, Element.arm64).Extensions(Element.zip)
-                    .Convention(Element.VSCode, Element.win32, Element.arm64, Element.insider, Element.version)
-                    // https://update.code.visualstudio.com/major.minor.patch/win32-arm64-archive/stable
-                    .Url(Range(Element.win32, Element.arm64, Element.archive))
-                    ;
-
-                // linux+deb+x64+version => code_major.minor.version-stable_amd64.deb
-                // linux+rpm+x64+version => code-major.minor.version-stable.el7.x86_64.rpm
-                // linux+archive+x64+version => code-major.minor.version-x64-stable.tar.gz
-                yield return Strategy(op, (linux, deb, x64))
-                    .Directories(Element.Linux, Element.x64)
-                    .Extensions(Element.amd64, Element.deb)
-                    .Convention(underscore, Element.code, Element.insider, Element.version)
-                    // https://update.code.visualstudio.com/major.minor.patch/linux-deb-x64/stable
-                    .Url(Range(Element.linux, Element.deb, Element.x64))
-                    ;
-
-                yield return Strategy(op, (linux, rpm, x64))
-                    .Directories(Element.Linux, Element.x64)
-                    .Extensions(Element.el7, Element.x86_64, Element.rpm)
-                    .Convention(underscore, Element.code, Element.insider, Element.version)
-                    // https://update.code.visualstudio.com/major.minor.patch/linux-rpm-x64/stable
-                    .Url(Range(Element.linux, Element.rpm, Element.x64))
-                    ;
-
-                yield return Strategy(op, (linux, archive, x64))
-                    .Directories(Element.Linux, Element.x64)
-                    .Extensions(Element.tar, Element.gz)
-                    .Convention(underscore, Element.code, Element.insiderOrNull, Element.x64, Element.version)
-                    // https://update.code.visualstudio.com/major.minor.patch/linux-rpm-x64/stable
-                    .Url(Range(Element.linux, Element.x64))
-                    ;
-
-                // linux+deb+arm+version => code_major.minor.version-stable_armhf.deb
-                // linux+rpm+arm+version => code-major.minor.version-stable.el7.armv7hl.rpm
-                // linux+archive+arm+version => code-major.minor.version-armhf-stable.tar.gz
-                yield return Strategy(op, (linux, deb, arm))
-                    .Directories(Element.Linux, Element.arm)
-                    .Extensions(Element.el7, Element.armhf, Element.deb)
-                    .Convention(underscore, Element.code, Element.insider, Element.version)
-                    // https://update.code.visualstudio.com/major.minor.patch/linux-deb-armhf/stable
-                    .Url(Range(Element.linux, Element.deb, Element.armhf))
-                    ;
-
-                yield return Strategy(op, (linux, rpm, arm))
-                    .Directories(Element.Linux, Element.arm)
-                    .Extensions(Element.el7, Element.armv7hl, Element.rpm)
-                    .Convention(underscore, Element.code, Element.insider, Element.version)
-                    // https://update.code.visualstudio.com/major.minor.patch/linux-rpm-armhf/stable
-                    .Url(Range(Element.linux, Element.rpm, Element.armhf))
-                    ;
-
-                yield return Strategy(op, (linux, archive, arm))
-                    .Directories(Element.Linux, Element.arm)
-                    .Extensions(Element.armhf, Element.tar, Element.gz)
-                    .Convention(underscore, Element.code, Element.insider, Element.version)
-                    // https://update.code.visualstudio.com/major.minor.patch/linux-armhf/stable
-                    .Url(Range(Element.linux, Element.armhf))
-                    ;
-
-                // linux+deb+arm64+version => code_major.minor.version-stable_arm64.deb
-                // linux+rpm+arm64+version => code-major.minor.version-stable.el7.aarch64.rpm
-                // linux+archive+arm64+version => code-major.minor.version-arm64-stable.tar.gz
-                yield return Strategy(op, (linux, deb, arm64))
-                    .Directories(Element.Linux, Element.arm64)
-                    .Extensions(Element.deb)
-                    .Convention(underscore, Element.code, Element.insider, Element.version, Element.arm64)
-                    // code_insider_major.minor.patch_arm64.deb
-                    .Url(Range(Element.linux, Element.deb, Element.arm64))
-                    ;
-
-                yield return Strategy(op, (linux, rpm, arm64))
-                    .Directories(Element.Linux, Element.arm64)
-                    .Extensions(Element.el7, Element.aarch64, Element.rpm)
-                    .Convention(underscore, Element.code, Element.insider, Element.version)
-                    // code_insider_major.minor.patch.el7.aarch64.rpm
-                    .Url(Range(Element.linux, Element.rpm, Element.arm64))
-                    ;
-
-                yield return Strategy(op, (linux, archive, arm64))
-                    .Directories(Element.Linux, Element.arm64)
-                    .Extensions(Element.tar, Element.gz)
-                    .Convention(underscore, Element.code, Element.insider, Element.version, Element.arm64)
-                    // code_insider_major.minor.patch_arm64.tar.gz
-                    .Url(Range(Element.linux, Element.arm64))
-                    ;
-
-                // linux+snap => code-stable-major.minor.patch.snap
-                // linux+archive+snap => code-stable-major.minor.patch.snap
-                yield return Strategy(op, (linux, snap, null))
-                    .Directories(Element.Linux, Element.snap).Extensions(Element.snap)
-                    .Convention(Element.code, Element.insider, Element.version)
-                    // code_insider_major.minor.patch.snap
-                    .Url(Range(Element.linux, Element.snap, Element.x64))
-                    ;
-
-                // darwin+version+stable => VSCode-darwin-major.minor.patch-stable.zip
-                yield return Strategy(op, (darwin, archive, null))
-                    .Directories(Element.macOS, Element.versionMacOS).Extensions(Element.zip)
-                    .Convention(Element.VSCode, Element.darwin, Element.insider, Element.version)
-                    // VSCode-darwin-insider-major.minor.patch.zip
-                    .Url(Range(Element.darwin))
-                    ;
-            }
-
-            this.Strategies = GetStrategies(this.CurrentOptions).ToDictionary(x => x.Spec);
         }
 
         internal DownloadProcessor(AssetManager assets, OptionsParser options, Func<TextWriter> writerSelector)
@@ -2264,7 +2276,15 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             var op = CurrentOptions;
             var cp = CurrentProcessor;
 
-            if (!(op.TryParseArguments(args) && cp.TryFilterSpecifications()))
+            /* Helps make it clear that we must parse arguments before dealing at all
+             * with processing strategies. */
+
+            if (!op.TryParseArguments(args))
+            {
+                op.OnShowHelp();
+                return;
+            }
+            else if (!cp.TryFilterSpecifications())
             {
                 op.OnShowHelp();
                 return;
