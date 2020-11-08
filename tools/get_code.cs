@@ -604,7 +604,37 @@ namespace Code.Downloader
             }
         }
 
-        internal static System.Version macOS { get; } = Version.Parse("10.10");
+        /// <summary>
+        /// Replaces the <see cref="macOS"/> with the parsed <paramref name="s"/>
+        /// <see cref="Version"/>. When this fails due to <see cref="Version.Parse"/>
+        /// exception, replaces with the <paramref name="previousOS"/>.
+        /// </summary>
+        /// <param name="s"></param>
+        /// <param name="previousOS"></param>
+        private static void ReplaceMacOS(string s, Version previousOS)
+        {
+            try
+            {
+                Versions.macOS = Version.Parse(s);
+            }
+            catch
+            {
+                // Replace with the previous value when
+                Versions.macOS = previousOS;
+            }
+        }
+
+        /// <summary>
+        /// Replaces the <see cref="macOS"/> with the parsed <paramref name="s"/>.
+        /// </summary>
+        /// <param name="s"></param>
+        /// <see cref="macOS"/>
+        internal static void ReplaceMacOS(string s) => ReplaceMacOS(s, macOS);
+
+        /// <summary>
+        /// 10.10+
+        /// </summary>
+        internal static System.Version macOS { get; private set; } = Version.Parse("10.10");
 
         // TODO: TBD: version informs the directory path...
         // TODO: TBD: the macOS version informs darwin directory path...
@@ -735,6 +765,7 @@ namespace Code.Downloader
         private string[] VersionOpts { get; }
         private string[] NoPauseOpts { get; }
         private string[] CodeVersionOpts { get; }
+        private string[] MacOsOpts { get; }
 
         private string[] TargetVals { get; }
         private string[] ArchVals { get; }
@@ -810,6 +841,8 @@ namespace Code.Downloader
             this.InsiderOpts = GetTypeBasedOptions<Insider>(selectAll, 1).Select(DressOptionPunctuation).ToArray();
             this.VersionOpts = GetTypeBasedOptions<Version>(selectAll, 1).Select(DressOptionPunctuation).ToArray();
             this.NoPauseOpts = GetTypeBasedOptions<NoPause>(selectAll).Select(DressOptionPunctuation).ToArray();
+
+            this.MacOsOpts = Range("--macos").ToArray();
 
             // TODO: TBD: there's probably a pattern here we can factor to a method, at least...
             this.CodeVersionOpts = Range($"{hyp}{hyp}{CodeVersion.code}{hyp}{CodeVersion.version}"
@@ -983,6 +1016,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             , (this.CodeVersionOpts, "--x VALUE, specify the Code version, or latest", this.CodeVersionVals)
             , (this.InsiderOpts, $"--x, whether to get the {nameof(insider)}. Defaults to {nameof(stable)} absent.", this.DefaultVals)
             , (this.VersionOpts, "--x, whether to show the downloader version", this.DefaultVals)
+            , (this.MacOsOpts, "--x VALUE, permits users to train downloader with the macOS version", this.DefaultVals)
         );
 
         private void ReportDryRun(int i, params string[] args)
@@ -1111,6 +1145,12 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 if (this.DryOpts.Contains(arg))
                 {
                     this.dry = Dry.dry;
+                    continue;
+                }
+
+                if (this.MacOsOpts.Contains(arg))
+                {
+                    Versions.ReplaceMacOS(GetArgument(++i));
                     continue;
                 }
 
