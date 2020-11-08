@@ -12,7 +12,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyProduct("VSCode")]
 [assembly: AssemblyTitle("VSCode Downloader")]
 [assembly: AssemblyCompany("Ellumination Technologies")]
-[assembly: AssemblyCopyright("Copyright (c) 2020")]
+[assembly: AssemblyCopyright("Copyright © 2020")]
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
 [assembly: AssemblyInformationalVersion("1.0.0.0")]
