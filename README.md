@@ -18,6 +18,17 @@ Caveats, although any developer command line `csc` invocation should work, we ar
 
 That is all. Simple.
 
+## Requirements
+
+Requires existence of two external utilities.
+
+|Utility|Description|
+|-------|-----------|
+|`wget.exe`|Somewhere in the [system or user path](https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/path), `wget.exe` on _Windows_ systems. May be obtained from [WSUS Offline](https://download.wsusoffline.net/)|
+|`where.exe`|As far as we know it to be, part of the _Windows OS_, literally `X:\Windows\System32\where.exe`. [See also](https://www.exefiles.com/en/exe/where-exe).|
+
+Also requires that the user profile running the application have sufficient permissions to create and move files, create directories, and so forth.
+
 ## Conflicts
 
 I have noticed that [Microsoft Defender](https://docs.microsoft.com/en-us/windows/security/threat-protection/microsoft-defender-antivirus/microsoft-defender-antivirus-in-windows-10) sometimes detects `get_code.exe` as a potentially harmful _Trojan:Win32/Wacatac.B!ml_ virus, which is humorous to me. Verify that _Defender_ is identifying `get_code.exe`, and ignore it.
