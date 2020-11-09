@@ -1,6 +1,6 @@
 # Visual Studio Code Downloader
 
-Downloader is a single file [CSharp](https://docs.microsoft.com/en-us/dotnet/csharp/) strategy for [Microsoft VSCode](https://code.visualstudio.com/).
+Downloader is a single file [CSharp](https://docs.microsoft.com/en-us/dotnet/csharp/) strategy for downloading some or all of the [Microsoft VSCode](https://code.visualstudio.com/) distributions.
 
 ## Goals
 
