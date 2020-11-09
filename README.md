@@ -109,7 +109,7 @@ get_code.exe -L 1.51.0
 
 ### Code version
 
-If you happen to know of a specific [Code] version you want to download.
+If you happen to know of a specific [Code](#) version you want to download.
 
 ```
 get_code.exe --code-version 1.51.1
@@ -125,5 +125,5 @@ At the time of this writing, the _macOS_ version is known to be [_OS X Yosemite_
 get_code.exe --macos 20.20
 ```
 
-_Note, `10.20` is fictional at the time of this writing, for illustration purposes only._
+_Note, `20.20` is fictional at the time of this writing, for illustration purposes only._
 
