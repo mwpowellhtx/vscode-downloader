@@ -12,7 +12,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyProduct("VSCode")]
 [assembly: AssemblyTitle("VSCode Downloader")]
 [assembly: AssemblyCompany("Ellumination Technologies")]
-[assembly: AssemblyCopyright("Copyright © 2020")]
+[assembly: AssemblyCopyright("Copyright (c) 2020")]
 [assembly: AssemblyVersion("1.0.0.0")]
 [assembly: AssemblyFileVersion("1.0.0.0")]
 [assembly: AssemblyInformationalVersion("1.0.0.0")]
@@ -640,12 +640,17 @@ namespace Code.Downloader
         /// <see cref="_macOS"/>
         internal static void ReplaceMacOS(string s) => ReplaceVersion(s, macOS, x => _macOS = x);
 
-        private static System.Version _macOS = Version.Parse("10.10");
+        /// <summary>
+        /// Gets the Default <see cref="macOS"/>. Defaults to &quot;10.10+&quot;.
+        /// </summary>
+        internal static System.Version defaultMacOS { get; } = Version.Parse("10.10");
+
+        private static System.Version _macOS;
 
         /// <summary>
-        /// &quot;10.10+&quot;
+        /// Gets the current <see cref="macOS"/>. Defaults to <see cref="defaultMacOS"/>.
         /// </summary>
-        internal static System.Version macOS => _macOS;
+        internal static System.Version macOS => _macOS ?? (_macOS = defaultMacOS);
 
         // TODO: TBD: version informs the directory path...
         // TODO: TBD: the macOS version informs darwin directory path...
@@ -667,12 +672,17 @@ namespace Code.Downloader
         /// <see cref="_latestVersion"/>
         internal static void ReplaceLatestVersion(string s) => ReplaceVersion(s, latestVersion, x => _latestVersion = x);
 
-        private static System.Version _latestVersion = Version.Parse("1.50.1");
+        /// <summary>
+        /// Gets the Default <see cref="latestVersion"/>. Defaults to &quot;1.50.1&quot;.
+        /// </summary>
+        internal static System.Version defaultLatestVersion { get; } = Version.Parse("1.51.0");
+
+        private static System.Version _latestVersion;
 
         /// <summary>
-        /// &quot;1.50.1&quot;
+        /// Gets the <see cref="latestVersion"/>. Defaults to <see cref="defaultLatestVersion"/>.
         /// </summary>
-        internal static System.Version latestVersion => _latestVersion;
+        internal static System.Version latestVersion => _latestVersion ?? (_latestVersion = defaultLatestVersion);
 
         /// <summary>
         /// Gets or Sets the Rendered <see cref="string"/> <see cref="version"/>.
@@ -872,93 +882,6 @@ namespace Code.Downloader
             // TODO: TBD: there's probably a pattern here we can factor to a method, at least...
             this.CodeVersionOpts = Range($"{hyp}{hyp}{CodeVersion.code}{hyp}{CodeVersion.version}"
                 , $"{hyp}{CodeVersion.code.ToString().First()}{CodeVersion.version.ToString().First()}").ToArray();
-
-            ///// <summary>
-            ///// Returns the valid combinations corresponding to the <see cref="Target"/>
-            ///// <paramref name="key"/>. This is our way of vetting the valid from invalid
-            ///// permutations for quality control purposes. As long as the combination is
-            ///// valid we let it pass. But when it is determined to be invalid, then we may
-            ///// report usage.
-            ///// </summary>
-            //IEnumerable<Build> OnGetBuildsForTarget(Target key)
-            //{
-            //    if (key == win32)
-            //    {
-            //        yield return user;
-            //        yield return system;
-            //    }
-            //
-            //    if (key == linux)
-            //    {
-            //        yield return deb;
-            //        yield return rpm;
-            //        yield return snap;
-            //    }
-            //
-            //    // This is correct, all targets support archive in one form or another.
-            //    yield return archive;
-            //}
-
-            ///// <summary>
-            ///// Returns the valid combinations corresponding to the <see cref="Target"/>
-            ///// <see cref="Build"/> <paramref name="pair"/> combinations. Also ditto further
-            ///// <see cref=""/> remarks.
-            ///// </summary>
-            //IEnumerable<Architecture?> OnGetArchesForTargetBuild((Target t, Build b) pair)
-            //{
-            //    if (pair.t == win32)
-            //    {
-            //        yield return x86;
-            //        yield return x64;
-            //        // Screen for arm -> arm64 upon parsing.
-            //        yield return arm64;
-            //    }
-            //
-            //    if (pair.t == linux)
-            //    {
-            //        if (pair.b == snap)
-            //        {
-            //            // Screen for null -> x64 upon parsing.
-            //            yield return x64;
-            //        }
-            //        else
-            //        {
-            //            // Screen for x86 -> x64 upon parsing.
-            //            yield return x64;
-            //            yield return arm;
-            //            yield return arm64;
-            //        }
-            //    }
-            //
-            //    if (pair.t == darwin)
-            //    {
-            //        yield return null;
-            //    }
-            //}
-
-            //IEnumerable<(Target t, Build b, Architecture? a)> GetAllDownloadSpecs()
-            //{
-            //    foreach (Target t in win32.GetEnumValues())
-            //    {
-            //        foreach (Build b in this.BuildsForTarget[t])
-            //        {
-            //            foreach (Architecture? a in this.ArchesForTargetBuild[(t, b)])
-            //            {
-            //                yield return (t, b, a);
-            //            }
-            //        }
-            //    }
-            //}
-
-            //this.BuildsForTarget = Range(win32, linux, darwin)
-            //    .Select(key => (key, Values: OnGetBuildsForTarget(key).ToArray()))
-            //    .ToDictionary(x => x.key, x => x.Values);
-
-            //this.ArchesForTargetBuild = this.BuildsForTarget
-            //    .SelectMany(pair => pair.Value.Select(b => (t: pair.Key, b)))
-            //    .ToDictionary(x => x, x => OnGetArchesForTargetBuild(x).ToArray());
-
-            //this.AllDownloadSpecs = GetAllDownloadSpecs().ToArray();
         }
 
         private string RenderHelpSummary(string fileName)
@@ -995,6 +918,26 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
         private bool TryPresentHelp(string summary, params (string[] flags, string description, string[] values)[] opts)
         {
+            this.Writer.WriteLine();
+
+            void PresentVersion(string label, Version value, Version @default)
+            {
+                this.Writer.Write($"{label} {value}");
+
+                if (value == @default)
+                {
+                    this.Writer.WriteLine();
+                }
+                else
+                {
+                    this.Writer.Write(" ");
+                    this.Writer.WriteLine(string.Join(string.Join($"{colon} ", nameof(@default), $"{@default}"), parens.ToArray()));
+                }
+            }
+
+            PresentVersion("Latest version", Versions.latestVersion, Versions.defaultLatestVersion);
+            PresentVersion("Macintosh OS X version", Versions.macOS, Versions.defaultMacOS);
+
             //const int colWidth = 4;
             const string flagPrefix = "  ";
 
@@ -1108,6 +1051,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
             // Reset the optional values to nominal defaults.
             this.pause = NoPause.pause;
+            this.help = default;
             this.all = default;
             this.dry = default;
             this.target = default;
@@ -1124,7 +1068,8 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
                 if (this.HelpOpts.Contains(arg))
                 {
-                    return false;
+                    this.help = show;
+                    continue;
                 }
 
                 if (this.NoPauseOpts.Contains(arg))
@@ -1210,9 +1155,17 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             ReportDryRun(i, args);
 
             /* Arguments are considered parsed successfully when:
-             * 1. Arguments processed successfully
-             * 2. Assets properly discovered
+             * 1. Whether to show help after (arguments have parsed).
+             * 2. Arguments processed successfully
+             * 3. Assets properly discovered
              */
+
+            // Requesting help short circuits, should not evaluate whether assets are discovered.
+            if (this.help == show)
+            {
+                return false;
+            }
+
             return i == args.Length
                 && this.CurrentAssets.AreDiscovered(this.Writer);
         }
@@ -1481,17 +1434,6 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 a = x64;
             }
 
-            //// Do a little screening of the command line arguments ensuring optimum alignment.
-            //if (t == linux && a == null && b == snap)
-            //{
-            //    a = x64;
-            //}
-            //else if (t == linux && a == x86 && b.HasValue && Range(deb, rpm, archive).Contains(b.Value))
-            //{
-            //    // TODO: TBD: for the moment it includes snap... but we do not think it should...
-            //    a = x64;
-            //}
-
             if (t == darwin && b != archive && a != null)
             {
                 b = archive;
@@ -1717,198 +1659,6 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
             this.SelectedSpecifications.ToList().ForEach(this.OnProcessSpecification);
         }
-
-#if false // Temporarily disabled while working out the front of the process
-    // TODO: TBD: all this can probably go away, we've approached it a slightly different/better way...
-
-        /// <summary>
-        ///
-        /// </summary>
-        /// <param name="t">A target.</param>
-        /// <param name="b">An optional build.</param>
-        /// <param name="a">An optional architecture.</param>
-        private void ProcessSingle(string t, string b = null, string a = null)
-        {
-            var op = this.CurrentOptions;
-            //var assets = this.CurrentAssets;
-
-            if (op.IsDry)
-            {
-                //this.Writer.WriteLine($"{nameof(Dry)}: {nameof(ProcessSingle)}({RenderNameObjectPairs(nameof(t), t)}, {RenderNameObjectPairs(nameof(b), b), {RenderNameObjectPairs(nameof(a), a)}})");
-            }
-
-            b = b ?? string.Empty;
-            a = a ?? string.Empty;
-
-            var version = this.CurrentVersion;
-
-            // Render both the UpdateCodeUri and version bits...
-            var baseUriVersion = op.insider
-                ? $"{updateCodeUri}{version}-{nameof(op.insider)}/"
-                : $"{updateCodeUri}{version}/";
-
-            bool TryProcessAny(string path, string versionUriPhrase)
-            {
-                MakeDirectory(path);
-                return TryInvokeWget(path, $"{baseUriVersion}{versionUriPhrase}{this.slashStableOrInsider}");
-            }
-
-            string RenderAssertOrAssetInsiderPhrase(params string[] parts) => string.Join(
-                $"{hyp}", parts.Concat(this.InsiderParts).Where(IsNotNullOrEmpty)
-            );
-
-            // TODO: TBD: can probable refactor the general case given a path, uri, and directory...
-            bool TryProcessWin32()
-            {
-                var build = b == system ? null : b;
-                var arch = a == x86 ? null : a;
-                return TryProcessAny(Path.Combine(version, t, a), RenderAssertOrAssetInsiderPhrase(t, arch, build));
-            }
-
-            bool TryProcessLinux()
-            {
-                var build = b == archive ? null : b;
-
-                var arch = b == snap ? x64
-                    : (a == arm ? armhf : a);
-
-                var phrase = RenderAssertOrAssetInsiderPhrase(t, build, arch);
-
-                return b == snap
-                    ? TryProcessAny(Path.Combine(version, t, b), phrase)
-                    : TryProcessAny(Path.Combine(version, t, a), phrase);
-            }
-
-            bool TryProcessDarwin() => TryProcessAny(Path.Combine(version, Directories.macOS, $"{Versions.macOS}+"), RenderAssertOrAssetInsiderPhrase(t));
-
-            switch (t)
-            {
-                case win32:
-                    TryProcessWin32();
-                    break;
-
-                case linux:
-                    TryProcessLinux();
-                    break;
-
-                case darwin:
-                    TryProcessDarwin();
-                    break;
-            }
-        }
-
-        /// <summary>
-        ///
-        /// </summary>
-        /// <param name="v">A version.</param>
-        /// <param name="t">A target.</param>
-        /// <param name="b">A build.</param>
-        /// <param name="a">An architecture.</param>
-        public void ProcessConfiguration()
-        {
-            var op = this.CurrentOptions;
-
-            const string @null = nameof(@null);
-
-            if (op.IsDry)
-            {
-                this.Writer.WriteLine($"{nameof(Dry)}: {nameof(ProcessConfiguration)}()");
-            }
-
-            void ProcessMacOS((Target t, Build? b, Architecture? a) tuple)
-            {
-                var (t, _, __) = tuple;
-
-                if (t == Targets.darwin)
-                {
-                    ProcessSingle(t);
-                }
-            }
-
-            void ProcessWin32((Target t, Build? b, Architecture? a) tuple)
-            {
-                var (t, b, a) = tuple;
-                var builds = (string.IsNullOrEmpty(b) ? system : Range(b)).ToArray();
-                var arches = (string.IsNullOrEmpty(a) ? x64 : Range(a)).ToArray();
-
-                if (t == Targets.win32)
-                {
-                    foreach (var arch in arches)
-                    {
-                        foreach (var build in builds)
-                        {
-                            ProcessSingle(t, build, arch);
-                        }
-                    }
-                }
-            }
-
-            void ProcessLinux((Target t, Build? b, Architecture? a) tuple)
-            {
-                var (t, b, a) = tuple;
-                var builds = Range(b ?? deb).ToArray();
-                var arches = Range(a ?? x64).ToArray();
-
-                if (t == Targets.linux)
-                {
-                    foreach (var arch in arches)
-                    {
-                        foreach (var build in builds)
-                        {
-                            ProcessSingle(t, build, arch);
-                        }
-                    }
-
-                    ProcessSingle(t, snap);
-                }
-            }
-
-            void VetDownloadFlags()
-            {
-                /* We support arm64 arch downloads for win32 targets.
-                * Downloads says "ARM" but it is really arm64 behind the link. */
-                if (target == Targets.win32 && arch == arm)
-                {
-                    arch = arm64;
-                }
-
-                // Assumes Debian, RPM, or Snap builds are Linux targets.
-                if (Range(deb, rpm, snap).Contains(build))
-                {
-                    target = Targets.linux;
-                }
-
-                // Assumes x64 when linux and one of its builds specified.
-                if (target == Targets.linux
-                    && Range(deb, rpm, archive).Contains(build)
-                    && !Range(x64, arm, arm64).Contains(arch))
-                {
-                    arch = x64;
-                }
-            }
-
-            VetDownloadFlags();
-
-            if (all)
-            {
-                ProcessWin32(Targets.win32);
-                ProcessLinux(Targets.linux);
-                ProcessMacOS(Targets.darwin);
-            }
-            else
-            {
-                var t = target;
-                var b = build;
-                var a = arch;
-
-                ProcessWin32(t ?? string.Empty, b, a);
-                ProcessLinux(t ?? string.Empty, b, a);
-                ProcessMacOS(t ?? string.Empty);
-            }
-        }
-
-#endif // Temporarily disabled while working out the front of the process
-
     }
 
     public class DownloadStrategy
