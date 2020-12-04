@@ -675,7 +675,7 @@ namespace Code.Downloader
         /// <summary>
         /// Gets the Default <see cref="latestVersion"/>. Defaults to &quot;1.50.1&quot;.
         /// </summary>
-        internal static System.Version defaultLatestVersion { get; } = Version.Parse("1.51.0");
+        internal static System.Version defaultLatestVersion { get; } = Version.Parse("1.51.1");
 
         private static System.Version _latestVersion;
 
