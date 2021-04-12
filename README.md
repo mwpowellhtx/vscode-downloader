@@ -99,12 +99,12 @@ Several other features are noteworthy.
 
 ### Latest version
 
-By default the latest version is maintained at the source code level, at the time of this writing known to be `1.51.0`.
+By default the latest version is maintained at the source code level, at the time of this writing known to be `1.55.1`.
 
 However, in the interest of not being in the business of chasing Visual Studio Code versions, we allow the user to train the downloader with the most current latest version.
 
 ```
-get_code.exe -L 1.51.0
+get_code.exe -L 1.55.1
 ```
 
 ### Code version
@@ -112,10 +112,10 @@ get_code.exe -L 1.51.0
 If you happen to know of a specific [Code](#) version you want to download.
 
 ```
-get_code.exe --code-version 1.51.1
+get_code.exe --code-version 1.55.1
 ```
 
-_Note, `1.51.1` is fictional at the time of this writing, for illustration purposes only._
+_Note, `1.55.1` is fictional at the time of this writing, for illustration purposes only._
 
 ### Macintosh Operating System version
 
@@ -124,6 +124,8 @@ At the time of this writing, the _macOS_ version is known to be [_OS X Yosemite_
 ```
 get_code.exe --macos 20.20
 ```
+
+We have also added _Universal_ as well as _Apple Silicon_ (`arm64`) support. The default is considered to be the _Intel Chip_ download.
 
 _Note, `20.20` is fictional at the time of this writing, for illustration purposes only._
 
