@@ -12,11 +12,41 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyProduct("VSCode")]
 [assembly: AssemblyTitle("VSCode Downloader")]
 [assembly: AssemblyCompany("Ellumination Technologies")]
-[assembly: AssemblyCopyright("Copyright (c) 2020")]
-[assembly: AssemblyVersion("1.1.0.0")]
-[assembly: AssemblyFileVersion("1.1.0.0")]
-[assembly: AssemblyInformationalVersion("1.1.0.0")]
+[assembly: AssemblyCopyright("Copyright (c) 2020-2021")]
+[assembly: AssemblyVersion("1.2.0.0")]
+[assembly: AssemblyFileVersion("1.2.0.0")]
+[assembly: AssemblyInformationalVersion("1.2.0.0")]
 [assembly: Guid("f100c6cc-5c31-49e8-a913-0bda0cfefacc")]
+
+// Windows / User Installer / x64 / VSCodeUserSetup-x64-1.55.1.exe
+// Windows / User Installer / x32 / VSCodeUserSetup-ia32-1.55.1.exe
+// Windows / User Installer / arm / VSCodeUserSetup-arm64-1.55.1.exe
+
+// Windows / System Installer / x64 / VSCodeSetup-x64-1.55.1.exe
+// Windows / System Installer / x32 / VSCodeSetup-ia32-1.55.1.exe
+// Windows / System Installer / arm / VSCodeSetup-arm64-1.55.1.exe
+
+// Windows / .zip / x64 / VSCode-win32-x64-1.55.1.zip
+// Windows / .zip / x32 / VSCode-win32-ia32-1.55.1.zip
+// Windows / .zip / arm / VSCode-win32-arm64-1.55.1.zip
+
+// Linux / .deb / x64 / code_1.55.1-1617808414_amd64.deb
+// Linux / .deb / arm / code_1.55.1-1617807713_armhf.deb
+// Linux / .deb / arm64 / code_1.55.1-1617807524_arm64.deb
+
+// Linux / .rpm / x64 / code-1.55.1-1617808495.el8.x86_64.rpm
+// Linux / .rpm / arm / code-1.55.1-1617807780.el8.armv7hl.rpm
+// Linux / .rpm / arm64 / code-1.55.1-1617807586.el8.aarch64.rpm
+
+// Linux / .tar.gz / x64 / code-stable-x64-1617808689.tar.gz
+// Linux / .tar.gz / arm / code-stable-armhf-1617807959.tar.gz
+// Linux / .tar.gz / arm64 / code-stable-arm64-1617807804.tar.gz
+
+// Linux / snap
+
+// Mac / macOS 10.10+ / Universal / darwin-universal
+// Mac / macOS 10.10+ / Intel Chip / darwin
+// Mac / macOS 10.10+ / Apple Silicon / darwin-arm64
 
 // TODO: TBD: just about done with this one...
 // TODO: TBD: I may also commit it to github after all, we'll see...
@@ -135,6 +165,9 @@ namespace Code.Downloader
         latest,
     }
 
+    /// <summary>
+    /// Dry
+    /// </summary>
     public enum Dry
     {
         /// <summary>
@@ -143,6 +176,9 @@ namespace Code.Downloader
         dry,
     }
 
+    /// <summary>
+    /// All
+    /// </summary>
     public enum All
     {
         /// <summary>
@@ -151,6 +187,9 @@ namespace Code.Downloader
         all,
     }
 
+    /// <summary>
+    /// Help
+    /// </summary>
     public enum Help
     {
         /// <summary>
@@ -159,6 +198,9 @@ namespace Code.Downloader
         show,
     }
 
+    /// <summary>
+    /// Target
+    /// </summary>
     public enum Target
     {
         /// <summary>
@@ -174,9 +216,12 @@ namespace Code.Downloader
         /// <summary>
         /// For use with all Windows flavors.
         /// </summary>
-        win32
+        win32,
     }
 
+    /// <summary>
+    /// Architecture
+    /// </summary>
     public enum Architecture
     {
         /// <summary>
@@ -202,7 +247,12 @@ namespace Code.Downloader
         /// <summary>
         /// 
         /// </summary>
-        arm64
+        arm64,
+
+        /// <summary>
+        ///
+        /// </summary>
+        universal,
     }
 
     public enum Build
@@ -235,7 +285,7 @@ namespace Code.Downloader
         /// <summary>
         /// 
         /// </summary>
-        snap
+        snap,
     }
 
     public enum Insider
@@ -283,7 +333,14 @@ namespace Code.Downloader
     // linux+rpm+x64+version => code_major.minor.patch-amd64.rpm
     // linux+archive+x64+version => code_major.minor.patch-amd64.tar.gz
     //
+    // darwin+universal+version+stable => VSCode-darwin-universal-major.minor.patch-stable.zip
     // darwin+version+stable => VSCode-darwin-major.minor.patch-stable.zip
+    // darwin+arm64+version+stable => VSCode-darwin-arm64-major.minor.patch-stable.zip
+    //
+    // TODO: TBD: add additional APPLE options... universal, intel, apple, arm64
+    // Universal: https://code.visualstudio.com/sha/download?build=stable&os=darwin-universal => VSCode-darwin-universal.zip
+    // Intel chip: https://code.visualstudio.com/sha/download?build=stable&os=darwin => VSCode-darwin.zip
+    // Apple Silicon: https://code.visualstudio.com/sha/download?build=stable&os=darwin-arm64 => VSCode-darwin-arm64.zip
     //
     // Windows User Installer:
     // x64: VSCodeUserSetup-x64-1.50.1.exe
@@ -349,12 +406,13 @@ namespace Code.Downloader
         /// </summary>
         insiderOrNull,
         snap,
+        universal,
         ia32,
         x86,
         x64,
         arm,
         amd64, // For Linux DEB x64
-        arm64, // For Linux ARM64 DEB and archive
+        arm64, // For Linux ARM64 DEB and archive, macOS darwin
         el7, // For Linux RPM...
         x86_64, // For Linux RPM (x86)/x64
         armhf, // For Linux ARM DEB and archive
@@ -448,7 +506,9 @@ namespace Code.Downloader
         /// <see cref="!:https://snapcraft.io/code"/> store front, however, we are aware of the
         /// actual download Uri, so we utilize that reference directly.
         /// <br/>
+        /// <br/>darwin-universal
         /// <br/>darwin
+        /// <br/>darwin-arm64
         /// <br/>linux-arm64
         /// <br/>linux-armhf
         /// <br/>linux-deb-arm64
@@ -494,7 +554,9 @@ namespace Code.Downloader
         /// <br/>linux+snap => code-stable-major.minor.patch.snap
         /// <br/>linux+archive+snap => code-stable-major.minor.patch.snap
         /// <br/>
+        /// <br/>darwin+universal+version+stable => VSCode-darwin-universal-major.minor.patch-stable.zip
         /// <br/>darwin+version+stable => VSCode-darwin-major.minor.patch-stable.zip
+        /// <br/>darwin+arm64+version+stable => VSCode-darwin-arm64-major.minor.patch-stable.zip
         /// <br/>
         /// <br/>And a few notes concerning combinations and file naming conventions:
         /// <see cref="win32"/> and <see cref="darwin"/> <see cref="archive"/> extensions are
@@ -673,9 +735,10 @@ namespace Code.Downloader
         internal static void ReplaceLatestVersion(string s) => ReplaceVersion(s, latestVersion, x => _latestVersion = x);
 
         /// <summary>
-        /// Gets the Default <see cref="latestVersion"/>. Defaults to &quot;1.50.1&quot;.
+        /// Gets the Default <see cref="latestVersion"/>. Defaults to &quot;1.55.1&quot; at the time
+        /// of this commit.
         /// </summary>
-        internal static System.Version defaultLatestVersion { get; } = Version.Parse("1.51.1");
+        internal static System.Version defaultLatestVersion { get; } = Version.Parse("1.55.1");
 
         private static System.Version _latestVersion;
 
@@ -834,7 +897,7 @@ namespace Code.Downloader
             string OnRenderValue<T>(T value) => $"{value}";
 
             this.TargetVals = Range(darwin, linux, win32).Select(OnRenderValue).ToArray();
-            this.ArchVals = Range(x64, x86, arm, arm64).Select(OnRenderValue).ToArray();
+            this.ArchVals = Range(x64, x86, arm, arm64, universal).Select(OnRenderValue).ToArray();
             this.BuildVals = Range(user, system, archive, deb, rpm, snap).Select(OnRenderValue).ToArray();
             this.CodeVersionVals = Range(nameof(CodeVersion.latest), string.Join(nameof(CodeVersion.version).ToUpper(), angleBrackets.ToArray())).ToArray();
             this.DefaultVals = Range<string>().ToArray();
@@ -887,9 +950,7 @@ namespace Code.Downloader
         private string RenderHelpSummary(string fileName)
         {
             static string RenderFlagValues<K, V>(K key, params V[] values)
-            {
-                return $"--{key} {string.Join($"{pipe}", values.Select(x => $"{x}"))}";
-            }
+                => $"--{key} {string.Join($"{pipe}", values.Select(x => $"{x}"))}";
 
             const string target = nameof(this.target);
             const string build = nameof(this.build);
@@ -897,10 +958,10 @@ namespace Code.Downloader
 
             return $@"Provides a command line programmatic view into the Code download web page matrix. The options describe the values for each option, but not all combinations are valid. The following combinations work for each area of the matrix.
 
-  {fileName} {RenderFlagValues(target, darwin)}
   {fileName} {RenderFlagValues(target, win32)} {RenderFlagValues(build, user, system, archive)} {RenderFlagValues(arch, x64, x86, arm64)}
   {fileName} {RenderFlagValues(target, linux)} {RenderFlagValues(build, deb, rpm, archive)} {RenderFlagValues(arch, x64, x86, arm, arm64)}
   {fileName} {RenderFlagValues(target, linux)} {RenderFlagValues(build, snap)}
+  {fileName} {RenderFlagValues(target, darwin)} [{RenderFlagValues(arch, universal, arm64)}]
 
 There is only one download for {nameof(macOS)} {darwin} {macOS}+, --{arch} --{build} are both ignored.
 {RenderFlagValues(arch, arm)} is assumed to be {RenderFlagValues(arch, arm64)} when {RenderFlagValues(target, win32)} is specified.
@@ -1377,12 +1438,28 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
                 .Url(Range(Element.linux, Element.snap, Element.x64))
                 ;
 
+            // darwin+universal+version+stable => VSCode-darwin-universal-major.minor.patch-stable.zip
+            yield return Strategy(op, (darwin, archive, universal))
+                .Directories(Element.macOS, Element.universal, Element.versionMacOS).Extensions(Element.zip)
+                .Convention(Element.VSCode, Element.darwin, Element.universal, Element.insider, Element.version)
+                // VSCode-darwin-universal-insider-major.minor.patch.zip
+                .Url(Range(Element.darwin, Element.universal))
+                ;
+
             // darwin+version+stable => VSCode-darwin-major.minor.patch-stable.zip
             yield return Strategy(op, (darwin, archive, null))
                 .Directories(Element.macOS, Element.versionMacOS).Extensions(Element.zip)
                 .Convention(Element.VSCode, Element.darwin, Element.insider, Element.version)
                 // VSCode-darwin-insider-major.minor.patch.zip
                 .Url(Range(Element.darwin))
+                ;
+
+            // darwin+arm64+version+stable => VSCode-darwin-arm64-major.minor.patch-stable.zip
+            yield return Strategy(op, (darwin, archive, arm64))
+                .Directories(Element.macOS, Element.arm64, Element.versionMacOS).Extensions(Element.zip)
+                .Convention(Element.VSCode, Element.darwin, Element.arm64, Element.insider, Element.version)
+                // VSCode-darwin-arm64-insider-major.minor.patch.zip
+                .Url(Range(Element.darwin, Element.arm64))
                 ;
         }
 
@@ -1405,6 +1482,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
         private IEnumerable<(Target t, Build b, Architecture? a)> GetSelectedSpecifications((Target? t, Build? b, Architecture? a) filter)
         {
+            // We work with all three de-con fields, TARGET, BUILD, ARCH
             var (t, b, a) = filter;
 
             var op = this.CurrentOptions;
@@ -1637,6 +1715,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
         {
             var op = this.CurrentOptions;
 
+            // Working with all three de-con fields, TARGET, BUILD, ARCH
             var (t, b, a) = spec;
 
             if (op.IsDry)
@@ -1816,63 +1895,54 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
             this.Spec = spec;
         }
 
+        // TODO: TBD: is this used? rather we ran with the strategy approach?
+        [Obsolete("Unused")]
         private Element TargetElement
         {
             get
             {
+                // We just need the de-con TARGET field
                 var (t, _, __) = this.Spec;
 
-                if (t == darwin)
-                {
-                    return Element.darwin;
+                switch (t) {
+                    case darwin:    return Element.darwin;
+                    case linux:     return Element.Linux;
+                    default:        return Element.Windows;
                 }
-                else if (t == linux)
-                {
-                    return Element.Linux;
-                }
-
-                return Element.Windows;
             }
         }
 
-        private Element ArchitectureElement
+        // TODO: TBD: is this used? rather we ran with the strategy approach?
+        [Obsolete("Unused")]
+        private IEnumerable<Element> ArchitectureElements
         {
             get
             {
+                // We need both the de-con TARGET and ARCH fields
                 var (t, _, a) = this.Spec;
 
-                if (t == win32)
-                {
-                    if (a == x86)
-                    {
-                        return Element.ia32;
-                    }
-                    else if (a == x64)
-                    {
-                        return Element.x64;
-                    }
+                // // // TODO: TBD: ths issue is more of a sidebar at this point, we like the switch syntax much better...
+                // // // TODO: TBD: return enumerated Elements instead...
+                // // TODO: TBD: Update CSharp syntax highlighting / https://github.com/microsoft/vscode/issues/121124
+                // (Element?, Element) GetArchitectureElement(Element element) => (null, element);
 
-                    return Element.arm64;
+                // Identify the TARGET when ARCH is what it is
+                switch (t) {
+
+                    case win32 when (  a == x86                     ):  return Range(Element.ia32);
+                    case win32 when (              a == x64         ):  return Range(Element.x64);
+                    case win32 when (!(a == x86 || a == x64)        ):  return Range(Element.arm64);
+
+                    case linux when (  a == x64                     ):  return Range(Element.x86_64);
+                    case linux when (              a == arm         ):  return Range(Element.arm);
+                    case linux when (!(a == x64 || a == arm)        ):  return Range(Element.arm64);
+
+                    case darwin when ( a == universal               ):  return Range(Element.versionMacOS, Element.universal);
+                    case darwin when (                   a == arm64 ):  return Range(Element.versionMacOS, Element.arm64);
+
+                    // Default, we will run with the macOS darwin in the default arch
+                    default:                                            return Range(Element.versionMacOS);
                 }
-                else if (t == linux)
-                {
-                    if (a == x64)
-                    {
-                        return Element.x86_64;
-                    }
-                    else if (a == arm)
-                    {
-                        return Element.arm;
-                    }
-
-                    return Element.arm64;
-                }
-
-                // if (t == darwin && b == archive)
-                // {
-                    // Which version being the macOS version...
-                    return Element.versionMacOS;
-                // }
             }
         }
 
@@ -1963,14 +2033,16 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
     /// <summary>
     /// It is a bit crude I will admit, but the intention here is to run very light. Literally,
-    /// no dependencies, no other files. Literally, the only thing we should need to do here is
-    /// to &quot;csc filename&quot; and that&apos;s it. Maybe a handful of csc arguments as well,
-    /// but that is all. Almost a lite CSharp script of sorts, short of adopting a
-    /// <em>PowerShell</em> approach. Which so far we are able to accomplish with
-    /// a nominal set of System level using statements.
+    /// no dependencies, no other files. Literally, the only thing we should need to do here is to
+    /// &quot;csc filename&quot; and that&apos;s it. Maybe a handful of csc arguments as well, but
+    /// that is all. Almost a lite CSharp script of sorts, short of adopting a <em>PowerShell</em>
+    /// approach. Which so far we are able to accomplish with a nominal set of System level using
+    /// statements.
     /// </summary>
     /// <see cref="!:https://github.com/Microsoft/vscode"/>
     /// <see cref="!:https://docs.microsoft.com/en-us/dotnet/framework/app-domains/build-single-file-assembly"/>
+    /// <see cref="!:https://github.com/microsoft/vscode/issues/121119">Identify macOS download links</see>
+    /// <see cref="!:https://github.com/microsoft/vscode/issues/109329">Automating the downloads with help from repeatable links</see>
     public static class Program
     {
         /// <summary>
