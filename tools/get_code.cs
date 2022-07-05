@@ -12,10 +12,10 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyProduct("VSCode")]
 [assembly: AssemblyTitle("VSCode Downloader")]
 [assembly: AssemblyCompany("Ellumination Technologies")]
-[assembly: AssemblyCopyright("Copyright (c) 2020-2021")]
-[assembly: AssemblyVersion("1.2.0.0")]
-[assembly: AssemblyFileVersion("1.2.0.0")]
-[assembly: AssemblyInformationalVersion("1.2.0.0")]
+[assembly: AssemblyCopyright("Copyright (c) 2020-2022")]
+[assembly: AssemblyVersion("1.3.0.0")]
+[assembly: AssemblyFileVersion("1.3.0.0")]
+[assembly: AssemblyInformationalVersion("1.3.0.0")]
 [assembly: Guid("f100c6cc-5c31-49e8-a913-0bda0cfefacc")]
 
 // Windows / User Installer / x64 / VSCodeUserSetup-x64-1.68.1.exe
