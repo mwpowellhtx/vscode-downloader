@@ -18,25 +18,25 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyInformationalVersion("1.2.0.0")]
 [assembly: Guid("f100c6cc-5c31-49e8-a913-0bda0cfefacc")]
 
-// Windows / User Installer / x64 / VSCodeUserSetup-x64-1.55.1.exe
-// Windows / User Installer / x32 / VSCodeUserSetup-ia32-1.55.1.exe
-// Windows / User Installer / arm / VSCodeUserSetup-arm64-1.55.1.exe
+// Windows / User Installer / x64 / VSCodeUserSetup-x64-1.68.1.exe
+// Windows / User Installer / x32 / VSCodeUserSetup-ia32-1.68.1.exe
+// Windows / User Installer / arm / VSCodeUserSetup-arm64-1.68.1.exe
 
-// Windows / System Installer / x64 / VSCodeSetup-x64-1.55.1.exe
-// Windows / System Installer / x32 / VSCodeSetup-ia32-1.55.1.exe
-// Windows / System Installer / arm / VSCodeSetup-arm64-1.55.1.exe
+// Windows / System Installer / x64 / VSCodeSetup-x64-1.68.1.exe
+// Windows / System Installer / x32 / VSCodeSetup-ia32-1.68.1.exe
+// Windows / System Installer / arm / VSCodeSetup-arm64-1.68.1.exe
 
-// Windows / .zip / x64 / VSCode-win32-x64-1.55.1.zip
-// Windows / .zip / x32 / VSCode-win32-ia32-1.55.1.zip
-// Windows / .zip / arm / VSCode-win32-arm64-1.55.1.zip
+// Windows / .zip / x64 / VSCode-win32-x64-1.68.1.zip
+// Windows / .zip / x32 / VSCode-win32-ia32-1.68.1.zip
+// Windows / .zip / arm / VSCode-win32-arm64-1.68.1.zip
 
-// Linux / .deb / x64 / code_1.55.1-1617808414_amd64.deb
-// Linux / .deb / arm / code_1.55.1-1617807713_armhf.deb
-// Linux / .deb / arm64 / code_1.55.1-1617807524_arm64.deb
+// Linux / .deb / x64 / code_1.68.1-1617808414_amd64.deb
+// Linux / .deb / arm / code_1.68.1-1617807713_armhf.deb
+// Linux / .deb / arm64 / code_1.68.1-1617807524_arm64.deb
 
-// Linux / .rpm / x64 / code-1.55.1-1617808495.el8.x86_64.rpm
-// Linux / .rpm / arm / code-1.55.1-1617807780.el8.armv7hl.rpm
-// Linux / .rpm / arm64 / code-1.55.1-1617807586.el8.aarch64.rpm
+// Linux / .rpm / x64 / code-1.68.1-1617808495.el8.x86_64.rpm
+// Linux / .rpm / arm / code-1.68.1-1617807780.el8.armv7hl.rpm
+// Linux / .rpm / arm64 / code-1.68.1-1617807586.el8.aarch64.rpm
 
 // Linux / .tar.gz / x64 / code-stable-x64-1617808689.tar.gz
 // Linux / .tar.gz / arm / code-stable-armhf-1617807959.tar.gz
@@ -44,9 +44,9 @@ using System.Runtime.InteropServices;
 
 // Linux / snap
 
-// Mac / macOS 10.10+ / Universal / darwin-universal
-// Mac / macOS 10.10+ / Intel Chip / darwin
-// Mac / macOS 10.10+ / Apple Silicon / darwin-arm64
+// Mac / macOS 10.11+ / Universal / darwin-universal
+// Mac / macOS 10.11+ / Intel Chip / darwin
+// Mac / macOS 10.11+ / Apple Silicon / darwin-arm64
 
 // TODO: TBD: just about done with this one...
 // TODO: TBD: I may also commit it to github after all, we'll see...
@@ -703,9 +703,9 @@ namespace Code.Downloader
         internal static void ReplaceMacOS(string s) => ReplaceVersion(s, macOS, x => _macOS = x);
 
         /// <summary>
-        /// Gets the Default <see cref="macOS"/>. Defaults to &quot;10.10+&quot;.
+        /// Gets the Default <see cref="macOS"/>. Defaults to &quot;10.11+&quot;.
         /// </summary>
-        internal static System.Version defaultMacOS { get; } = Version.Parse("10.10");
+        internal static System.Version defaultMacOS { get; } = Version.Parse("10.11");
 
         private static System.Version _macOS;
 
@@ -735,10 +735,10 @@ namespace Code.Downloader
         internal static void ReplaceLatestVersion(string s) => ReplaceVersion(s, latestVersion, x => _latestVersion = x);
 
         /// <summary>
-        /// Gets the Default <see cref="latestVersion"/>. Defaults to &quot;1.55.1&quot; at the time
+        /// Gets the Default <see cref="latestVersion"/>. Defaults to &quot;1.68.1&quot; at the time
         /// of this commit.
         /// </summary>
-        internal static System.Version defaultLatestVersion { get; } = Version.Parse("1.55.1");
+        internal static System.Version defaultLatestVersion { get; } = Version.Parse("1.68.1");
 
         private static System.Version _latestVersion;
 
@@ -1448,6 +1448,7 @@ Based on the {codeDownloadUri} web page and informed by the {codeGithubIssueUri}
 
             // darwin+version+stable => VSCode-darwin-major.minor.patch-stable.zip
             yield return Strategy(op, (darwin, archive, null))
+            // Considered whether to change the path here, reviewed; reconsidered, i.e. will leave it alone
                 .Directories(Element.macOS, Element.versionMacOS).Extensions(Element.zip)
                 .Convention(Element.VSCode, Element.darwin, Element.insider, Element.version)
                 // VSCode-darwin-insider-major.minor.patch.zip
