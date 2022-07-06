@@ -9,14 +9,53 @@ using System.Runtime.InteropServices;
 
 // https://fake.build/dotnet-assemblyinfo.html
 // https://csharppedia.com/en/tutorial/4264/assemblyinfo-cs-examples
-[assembly: AssemblyProduct("VSCode")]
-[assembly: AssemblyTitle("VSCode Downloader")]
-[assembly: AssemblyCompany("Ellumination Technologies")]
-[assembly: AssemblyCopyright("Copyright (c) 2020-2022")]
-[assembly: AssemblyVersion("1.3.0.0")]
-[assembly: AssemblyFileVersion("1.3.0.0")]
-[assembly: AssemblyInformationalVersion("1.3.0.0")]
-[assembly: Guid("f100c6cc-5c31-49e8-a913-0bda0cfefacc")]
+[assembly: AssemblyProduct(Code.Downloader.Constants.Product)]
+[assembly: AssemblyTitle(Code.Downloader.Constants.Title)]
+[assembly: AssemblyCompany(Code.Downloader.Constants.Company)]
+[assembly: AssemblyCopyright(Code.Downloader.Constants.Copyright)]
+[assembly: AssemblyVersion(Code.Downloader.Constants.Version)]
+[assembly: AssemblyFileVersion(Code.Downloader.Constants.Version)]
+[assembly: AssemblyInformationalVersion(Code.Downloader.Constants.Version)]
+[assembly: Guid(Code.Downloader.Constants.Id)]
+
+// TODO: TBD: this approach could work...
+// TODO: TBD: sit on this one for a bit then decide whether to commit...
+// TODO: TBD: then if we do, take the version bumped below...
+namespace Code.Downloader
+{
+    internal static class Constants
+    {
+        /// <summary>
+        /// &quot;VSCode&quot;
+        /// </summary>
+        public const string Product = "VSCode";
+
+        /// <summary>
+        /// &quot;VSCode Downloader&quot;
+        /// </summary>
+        public const string Title = "VSCode Downloader";
+
+        /// <summary>
+        /// &quot;Ellumination Technologies&quot;
+        /// </summary>
+        public const string Company = "Ellumination Technologies";
+
+        /// <summary>
+        /// &quot;Copyright (c) 2020-2022&quot;
+        /// </summary>
+        public const string Copyright = "Copyright (c) 2020-2022";
+
+        /// <summary>
+        /// &quot;f100c6cc-5c31-49e8-a913-0bda0cfefacc&quot;
+        /// </summary>
+        public const string Id = "f100c6cc-5c31-49e8-a913-0bda0cfefacc";
+
+        /// <summary>
+        /// &quot;1.3.0.1 &quot;
+        /// <summary>
+        public const string Version = "1.3.0.1";
+    }
+}
 
 // Windows / User Installer / x64 / VSCodeUserSetup-x64-1.68.1.exe
 // Windows / User Installer / x32 / VSCodeUserSetup-ia32-1.68.1.exe
